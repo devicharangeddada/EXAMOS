@@ -396,9 +396,12 @@ function NeuralNode({
         isDimmed ? "opacity-20" : isInactive ? "opacity-40" : "opacity-100"
       )}
     >
-      {/* Neural connector line (vertical) for children */}
+      {/* L-shaped Apple-style connector: horizontal arm from vertical border to this node */}
       {level > 0 && (
-        <div className="absolute left-[-17px] top-0 bottom-0 w-[1px] neural-line pointer-events-none" />
+        <div
+          className="absolute left-[-12px] top-[18px] w-[12px] h-[1px] pointer-events-none"
+          style={{ background: 'rgba(74,144,226,0.22)' }}
+        />
       )}
 
       {/* Node Card */}
@@ -576,8 +579,8 @@ function NeuralNode({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
-            className="ml-[22px] pl-[12px] relative overflow-hidden"
-            style={{ borderLeft: '1px solid rgba(74,144,226,0.12)' }}
+            className="ml-[22px] pl-[12px] relative overflow-visible"
+            style={{ borderLeft: '1px solid rgba(74,144,226,0.2)' }}
           >
             {children.map((child, idx) => (
               <NeuralNode

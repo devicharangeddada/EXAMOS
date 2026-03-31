@@ -27,6 +27,9 @@ export const DEFAULT_STATE: AppState = {
     volume: 0.5,
     autoPlay: false,
     timeFormat: '12h',
+    pomodoroLength: 25,
+    breakLength: 5,
+    strictMode: false,
   },
   activeSlotId: null,
 };
@@ -39,7 +42,14 @@ export const loadState = (): AppState => {
     return {
       ...DEFAULT_STATE,
       ...parsed,
-      settings: { ...DEFAULT_STATE.settings, ...parsed.settings }
+      settings: {
+        ...DEFAULT_STATE.settings,
+        ...parsed.settings,
+        // Ensure new fields have defaults
+        pomodoroLength: parsed.settings?.pomodoroLength ?? 25,
+        breakLength: parsed.settings?.breakLength ?? 5,
+        strictMode: parsed.settings?.strictMode ?? false,
+      }
     };
   } catch {
     return DEFAULT_STATE;

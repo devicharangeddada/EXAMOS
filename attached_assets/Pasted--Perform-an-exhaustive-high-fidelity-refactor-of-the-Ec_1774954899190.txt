@@ -1,0 +1,46 @@
+"Perform an exhaustive, high-fidelity refactor of the EchOS system to achieve a professional Apple-style aesthetic and fix all functional regressions. Follow these strict directives:
+
+1. Global Identity & Branding:
+
+Title Purge: Change <title> in index.html to 'EchOS | imdvichrn'. Remove all 'Google AI Studio' or 'ExamFlow' strings.
+
+Ownership: Update the 'About' section and metadata.json to: 'Developed by geddada devicharan (@imdvichrn) & Echoless'.
+
+Navigation: Set the page order and labels to: 1. Home, 2. Syllabus, 3. Focus, 4. Recall, 5. Stats.
+
+2. Settings & Study Architecture (Fix Settings.tsx & types.ts):
+
+Functional Settings: Fix the 'Time & Behavior' logic to ensure Pomodoro lengths and 'Strict Mode' (navigation locking) are fully operational.
+
+Study Methods Page: Create a detailed 'Study Methods' sub-page within Settings. Include high-end cards for: Leitner (5-box), Feynman Technique, SQ3R, and Blurting. Each must include a minimalist infographic and a 'How it Works' description.
+
+About & Contact: Add a dedicated 'About Us' page with social links for @imdvichrn and a professional support contact.
+
+3. The 'Neural Map' Syllabus (Fix Syllabus.tsx):
+
+L-Curve Connectivity: Replace the grid with a hierarchical node tree. Topics must connect to sub-topics using sleek, 'L-shaped' Apple-style lines.
+
+Node Aesthetics: Each node must be color-coded by subject. Use vibrant, semi-transparent glows instead of 'dry' PNGs.
+
+Mastery Signals: Implement a gold 'Elite' glow for nodes at 100% completion and a momentum sparkline for real-time velocity.
+
+4. The 'Sanctuary Arena' (Fix FocusRoom.tsx):
+
+Audio Engine Fix: Repair the FocusAudioContext.ts to ensure ambient sets (Rain, White, Brown) play correctly.
+
+Clean HUD: Remove redundant or crowded mute buttons. Implement a single 'Silence' (No Music) toggle and a vertical 'Liquid Volume Pillar' that shifts colors from Deep Blue to Violet.
+
+Focus Infographics: Add a thin, breathing countdown timer and a real-time 'Streak Flame' that pulses as focus deepens.
+
+5. Professional Polish & UX:
+
+Theme Depth: Fix the 'Night Theme' bug. Use #000000 (OLED) for base, #0A0A0B for secondary, and #161618 for cards.
+
+Liquid Physics: Apply motion/react spring physics (stiffness: 300, damping: 30) to every button. Ensure 500ms theme fades for a peaceful experience."
+
+Key Technical Fixes for the Developer
+Audio Logic: The prompt specifically commands the repair of FocusAudioContext.ts, which is currently failing to trigger sounds in the FocusRoom.
+
+Navigation Locking: It enforces the fix for "Strict Mode," which is meant to disable the FloatingNav during active focus sessions to prevent distraction.
+
+Syllabus Hierarchy: The shift from a grid to an "L-shaped" connection tree (Apple-style) moves the UI from a beginner layout to an expert-level "Command Center".

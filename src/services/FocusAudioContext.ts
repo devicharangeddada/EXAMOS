@@ -1,73 +1,127 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
  * FocusAudioContext Manager
- * Handles high-fidelity audio transitions, logarithmic volume curves, 
- * and browser-compliant initialization.
+ * Generates ambient noise programmatically using Web Audio API.
+ * No network fetches required — zero CORS issues, instant playback.
  */
 
 export type SoundPresetId = 'white' | 'rain' | 'brown' | 'cafe';
 
 interface SoundPreset {
   id: SoundPresetId;
-  url: string;
   label: string;
 }
 
 export const SOUND_PRESETS: SoundPreset[] = [
-  { id: 'white', label: 'White Noise', url: 'https://raw.githubusercontent.com/rafaelrinaldi/pure-noise/master/sounds/white.mp3' },
-  { id: 'rain', label: 'Rain', url: 'https://raw.githubusercontent.com/rafaelrinaldi/pure-noise/master/sounds/pink.mp3' },
-  { id: 'brown', label: 'Brown Noise', url: 'https://raw.githubusercontent.com/rafaelrinaldi/pure-noise/master/sounds/brown.mp3' },
-  { id: 'cafe', label: 'Ambient Cafe', url: 'https://raw.githubusercontent.com/rafaelrinaldi/pure-noise/master/sounds/white.mp3' },
+  { id: 'white', label: 'White Noise' },
+  { id: 'rain',  label: 'Rain' },
+  { id: 'brown', label: 'Brown Noise' },
+  { id: 'cafe',  label: 'Ambient Café' },
 ];
+
+/** Generate a buffer of the requested noise type */
+function generateNoiseBuffer(context: AudioContext, type: SoundPresetId): AudioBuffer {
+  const sampleRate = context.sampleRate;
+  // 3-second loopable buffer
+  const frameCount = sampleRate * 3;
+  const buffer = context.createBuffer(2, frameCount, sampleRate);
+
+  for (let channel = 0; channel < 2; channel++) {
+    const output = buffer.getChannelData(channel);
+
+    if (type === 'white' || type === 'cafe') {
+      // White noise: flat random spectrum
+      for (let i = 0; i < frameCount; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+    } else if (type === 'brown') {
+      // Brown noise: integrated white noise (low-frequency rumble)
+      let lastOut = 0;
+      for (let i = 0; i < frameCount; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + 0.02 * white) / 1.02;
+        lastOut = output[i];
+        output[i] *= 3.5; // normalize
+      }
+    } else if (type === 'rain') {
+      // Rain: white noise with low-pass resonance and drip spikes
+      let lastOut = 0;
+      for (let i = 0; i < frameCount; i++) {
+        const white = Math.random() * 2 - 1;
+        // Simple IIR low-pass
+        output[i] = lastOut + 0.1 * (white - lastOut);
+        lastOut = output[i];
+        // Occasional drip transient
+        if (Math.random() < 0.0004) {
+          output[i] += (Math.random() - 0.5) * 0.6;
+        }
+        output[i] *= 2.5;
+      }
+    }
+  }
+
+  return buffer;
+}
+
+/** Build a post-processing filter chain for realism */
+function buildFilterChain(context: AudioContext, type: SoundPresetId): BiquadFilterNode {
+  const filter = context.createBiquadFilter();
+  if (type === 'white') {
+    filter.type = 'bandpass';
+    filter.frequency.value = 3000;
+    filter.Q.value = 0.3;
+  } else if (type === 'brown') {
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 0.7;
+  } else if (type === 'rain') {
+    filter.type = 'lowpass';
+    filter.frequency.value = 2200;
+    filter.Q.value = 0.5;
+  } else {
+    // cafe: slight bandpass warmth
+    filter.type = 'peaking';
+    filter.frequency.value = 800;
+    filter.gain.value = 3;
+    filter.Q.value = 0.5;
+  }
+  return filter;
+}
 
 class AudioController {
   private context: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private currentGain: GainNode | null = null;
-  private masterGain: GainNode | null = null;
-  private bufferCache: Map<SoundPresetId, AudioBuffer> = new Map();
+  private currentFilter: BiquadFilterNode | null = null;
   private currentPresetId: SoundPresetId | null = null;
-  private volume: number = 0.5; // 0 to 1
+  private volume: number = 0.5;
+  private bufferCache: Map<SoundPresetId, AudioBuffer> = new Map();
 
   constructor() {
-    // Load persisted settings
     const savedVolume = localStorage.getItem('focus_user_volume');
-    if (savedVolume !== null) {
-      this.volume = parseFloat(savedVolume);
-    }
+    if (savedVolume !== null) this.volume = parseFloat(savedVolume);
     const savedPreset = localStorage.getItem('focus_current_preset') as SoundPresetId;
     if (savedPreset && SOUND_PRESETS.find(p => p.id === savedPreset)) {
       this.currentPresetId = savedPreset;
     }
   }
 
-  /**
-   * Initialize or resume the AudioContext.
-   * Must be called within a user-triggered event.
-   */
   public async initialize(): Promise<void> {
     if (!this.context) {
-      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-      this.context = new AudioContextClass();
+      const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
+      this.context = new Ctx();
       this.masterGain = this.context.createGain();
       this.masterGain.connect(this.context.destination);
-      this.updateMasterGain();
-      
-      // Preload top sounds
-      this.preload(['white', 'rain', 'brown']);
+      this._applyMasterGain();
     }
-
     if (this.context.state === 'suspended') {
       await this.context.resume();
     }
   }
 
-  private updateMasterGain() {
+  private _applyMasterGain() {
     if (!this.masterGain || !this.context) return;
+    // Logarithmic volume curve for natural feel
     const gainValue = Math.pow(this.volume, 2);
     this.masterGain.gain.setTargetAtTime(gainValue, this.context.currentTime, 0.1);
   }
@@ -75,144 +129,74 @@ class AudioController {
   public setVolume(value: number) {
     this.volume = Math.max(0, Math.min(1, value));
     localStorage.setItem('focus_user_volume', this.volume.toString());
-    this.updateMasterGain();
+    this._applyMasterGain();
   }
 
-  public getVolume(): number {
-    return this.volume;
-  }
+  public getVolume(): number { return this.volume; }
+  public getCurrentPreset(): SoundPresetId | null { return this.currentPresetId; }
+  public isSuspended(): boolean { return this.context?.state === 'suspended'; }
 
-  public getCurrentPreset(): SoundPresetId | null {
-    return this.currentPresetId;
-  }
-
-  private async decodeAudio(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+  private _getBuffer(id: SoundPresetId): AudioBuffer {
     if (!this.context) throw new Error('AudioContext not initialized');
-    
-    // Modern browsers return a promise, but we use a wrapper for maximum compatibility
-    return new Promise((resolve, reject) => {
-      try {
-        this.context!.decodeAudioData(
-          arrayBuffer,
-          (buffer) => resolve(buffer),
-          (error) => {
-            console.error('decodeAudioData error:', error);
-            reject(new Error('Unable to decode audio data'));
-          }
-        );
-      } catch (e) {
-        reject(e);
-      }
-    });
+    if (!this.bufferCache.has(id)) {
+      this.bufferCache.set(id, generateNoiseBuffer(this.context, id));
+    }
+    return this.bufferCache.get(id)!;
   }
 
-  private async preload(ids: SoundPresetId[]) {
-    for (const id of ids) {
-      const preset = SOUND_PRESETS.find(p => p.id === id);
-      if (preset && !this.bufferCache.has(id)) {
-        try {
-          const response = await fetch(preset.url, { referrerPolicy: "no-referrer" });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const arrayBuffer = await response.arrayBuffer();
-          if (arrayBuffer.byteLength === 0) throw new Error('Empty buffer');
-          const audioBuffer = await this.decodeAudio(arrayBuffer);
-          this.bufferCache.set(id, audioBuffer);
-        } catch (e) {
-          console.error(`Failed to preload sound: ${id}`, e.message);
-        }
-      }
-    }
-  }
-
-  public async play(id: SoundPresetId) {
-    if (!this.context) await this.initialize();
-    if (this.context!.state === 'suspended') await this.context!.resume();
-
-    if (this.currentPresetId === id && this.currentSource) return;
-
-    const preset = SOUND_PRESETS.find(p => p.id === id);
-    if (!preset) return;
-
-    // 1. Crossfade out current sound
-    const oldGain = this.currentGain;
-    const oldSource = this.currentSource;
-    if (oldGain) {
-      const fadeTime = 1.5;
-      const currentTime = this.context!.currentTime;
-      oldGain.gain.cancelScheduledValues(currentTime);
-      oldGain.gain.setValueAtTime(oldGain.gain.value, currentTime);
-      oldGain.gain.exponentialRampToValueAtTime(0.001, currentTime + fadeTime);
-      setTimeout(() => {
-        try {
-          oldSource?.stop();
-          oldSource?.disconnect();
-          oldGain.disconnect();
-        } catch (e) {
-          // Ignore errors if already stopped/disconnected
-        }
-      }, fadeTime * 1000 + 100);
-    }
-
-    // 2. Load and play new sound
-    let buffer = this.bufferCache.get(id);
-    if (!buffer) {
-      try {
-        const response = await fetch(preset.url, { referrerPolicy: "no-referrer" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const arrayBuffer = await response.arrayBuffer();
-        if (arrayBuffer.byteLength === 0) throw new Error('Empty buffer');
-        buffer = await this.decodeAudio(arrayBuffer);
-        this.bufferCache.set(id, buffer);
-      } catch (e) {
-        console.error(`Failed to play sound: ${id}`, e);
-        return;
-      }
-    }
-
-    const newSource = this.context!.createBufferSource();
-    newSource.buffer = buffer;
-    newSource.loop = true;
-
-    const newGain = this.context!.createGain();
-    const currentTime = this.context!.currentTime;
-    newGain.gain.setValueAtTime(0.001, currentTime);
-    
-    newSource.connect(newGain);
-    newGain.connect(this.masterGain!);
-
-    // 3. Crossfade in new sound
-    const fadeInTime = 2.0;
-    newSource.start(0);
-    newGain.gain.exponentialRampToValueAtTime(1.0, currentTime + fadeInTime);
-
-    this.currentSource = newSource;
-    this.currentGain = newGain;
-    this.currentPresetId = id;
-    localStorage.setItem('focus_current_preset', id);
-  }
-
-  public stop() {
+  private _stopCurrent(fadeTime = 1.2) {
     if (!this.currentGain || !this.context) return;
-
-    const fadeOutTime = 1.5;
     const gain = this.currentGain;
     const source = this.currentSource;
-
-    gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + fadeOutTime);
-    
+    const t = this.context.currentTime;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(gain.gain.value, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + fadeTime);
     setTimeout(() => {
-      source?.stop();
-      source?.disconnect();
-      gain.disconnect();
-    }, fadeOutTime * 1000 + 100);
-
+      try { source?.stop(); source?.disconnect(); gain.disconnect(); } catch {}
+    }, fadeTime * 1000 + 100);
     this.currentSource = null;
     this.currentGain = null;
     this.currentPresetId = null;
   }
 
-  public isSuspended(): boolean {
-    return this.context?.state === 'suspended';
+  public async play(id: SoundPresetId): Promise<void> {
+    await this.initialize();
+
+    // Already playing this preset
+    if (this.currentPresetId === id && this.currentSource) return;
+
+    // Fade out old
+    this._stopCurrent(1.2);
+
+    const buffer = this._getBuffer(id);
+    const filter = buildFilterChain(this.context!, id);
+
+    const source = this.context!.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const gain = this.context!.createGain();
+    const t = this.context!.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain!);
+
+    const fadeInTime = 1.8;
+    source.start(0);
+    gain.gain.exponentialRampToValueAtTime(1.0, t + fadeInTime);
+
+    this.currentSource = source;
+    this.currentGain = gain;
+    this.currentFilter = filter;
+    this.currentPresetId = id;
+    localStorage.setItem('focus_current_preset', id);
+  }
+
+  public stop() {
+    this._stopCurrent(1.5);
   }
 }
 
