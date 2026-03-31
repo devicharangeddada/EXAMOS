@@ -122,8 +122,8 @@ export default function Dashboard({ state, onSelectSubject, onAction }: Dashboar
             </p>
             <p className="text-[11px] text-tertiary">
               {progressStats.isAhead 
-                ? "You've earned a longer break." 
-                : `Target: ${progressStats.topicsPerDay} more topics today.`}
+                ? "Ahead of schedule — keep the momentum." 
+                : `Behind pace. Focus on ${progressStats.topicsPerDay} more topics today.`}
             </p>
           </div>
         </div>

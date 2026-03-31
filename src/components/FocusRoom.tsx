@@ -63,7 +63,10 @@ function LiquidVolumePillar({ volume, onVolumeChange }: { volume: number; onVolu
     const ratio = 1 - (clientY - rect.top) / rect.height;
     const clamped = Math.max(0, Math.min(1, ratio));
     const next = Math.round(clamped * 100);
-    if ((next === 0 || next === 100) && next !== volume) pulse('heavy');
+    const milestones = [0, 50, 100];
+    if (milestones.includes(next) && next !== volume) {
+      pulse(next === 50 ? 'light' : 'heavy');
+    }
     onVolumeChange(next);
   };
 
@@ -107,6 +110,48 @@ function LiquidVolumePillar({ volume, onVolumeChange }: { volume: number; onVolu
   );
 }
 
+function AmbientHUD({
+  isActive,
+  isSoundOn,
+  currentSound,
+  volume,
+  onToggleSound,
+  onNextSound,
+  onMute,
+}: {
+  isActive: boolean;
+  isSoundOn: boolean;
+  currentSound: string;
+  volume: number;
+  onToggleSound: () => void;
+  onNextSound: () => void;
+  onMute: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 16 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="absolute left-1/2 bottom-[calc(env(safe-area-inset-bottom,16px)+12px)] -translate-x-1/2 w-[min(92vw,420px)] rounded-full border border-white/10 bg-white/5 backdrop-blur-2xl px-4 py-3 flex items-center justify-between gap-3 text-[12px] text-white z-30"
+      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}
+    >
+      <div className="flex flex-col gap-[2px]">
+        <span className="font-semibold tracking-[0.15em] uppercase text-[10px] text-secondary">Ambient</span>
+        <span className="font-medium truncate">{currentSound} · {volume}%</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={onNextSound} className="rounded-full px-3 py-2 bg-white/10 text-[11px] font-medium transition hover:bg-white/15">
+          Switch
+        </button>
+        <button onClick={isSoundOn ? onMute : onToggleSound} className="rounded-full px-3 py-2 bg-white/10 text-[11px] font-medium transition hover:bg-white/15">
+          {isSoundOn ? 'Mute' : 'Unmute'}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, onCancel, onFocusActiveChange }: FocusRoomProps) {
   const [isActive, setIsActive] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -115,13 +160,16 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const [volume, setVolume] = useState(focusAudio.getVolume() * 100);
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isAuroraActive, setIsAuroraActive] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [completed, setCompleted] = useState(true);
   const [longPressActive, setLongPressActive] = useState(false);
   const [longPressProgress, setLongPressProgress] = useState(0);
 
-  const longPressTimer = useRef<any>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const auroraTimeout = useRef<number | null>(null);
   const node = activeNodeId ? nodes[activeNodeId] : null;
+  const currentSound = SOUND_PRESETS.find(p => p.id === selectedSound) || SOUND_PRESETS[0];
   const { pulse } = useHaptics();
 
   const pomodoroSeconds = (settings.pomodoroLength || 25) * 60;
@@ -146,21 +194,28 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   useEffect(() => {
     if (settings.soundMute) {
       setIsSoundOn(false);
+      focusAudio.kill().catch(() => {});
     }
   }, [settings.soundMute]);
 
   useEffect(() => {
-    if (isActive && isSoundOn && !settings.soundMute) {
+    if (settings.soundMute) {
+      return;
+    }
+
+    if (isActive && isSoundOn) {
       focusAudio.play(selectedSound).catch(() => setIsAudioSuspended(true));
     } else {
       focusAudio.stop();
     }
   }, [isActive, isSoundOn, selectedSound, settings.soundMute]);
 
-  useEffect(() => { focusAudio.setVolume(volume / 100); }, [volume]);
+  useEffect(() => {
+    focusAudio.setVolume(volume / 100);
+  }, [volume]);
 
   const handleToggleActive = async () => {
-    if (!isActive) {
+    if (!isActive && !settings.soundMute) {
       await focusAudio.initialize();
       setIsAudioSuspended(focusAudio.isSuspended());
       pulse('light');
@@ -169,6 +224,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   };
 
   const handleResumeAudio = async () => {
+    if (settings.soundMute) return;
     await focusAudio.initialize();
     setIsAudioSuspended(focusAudio.isSuspended());
     if (isActive && isSoundOn) focusAudio.play(selectedSound);
@@ -208,20 +264,66 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
 
   const handleFinish = () => {
     if (!activeNodeId) return;
-    onComplete({
+
+    const session: StudySession = {
       id: Math.random().toString(36).substring(7),
       nodeId: activeNodeId,
       startTime: Date.now() - seconds * 1000,
       duration: seconds,
       completed,
       difficulty,
-    });
+    };
+
+    setIsAuroraActive(true);
+    focusAudio.kill().catch(() => {});
+    setIsActive(false);
+    setShowSummary(false);
+
+    if (auroraTimeout.current) window.clearTimeout(auroraTimeout.current);
+    auroraTimeout.current = window.setTimeout(() => {
+      setIsAuroraActive(false);
+      onComplete(session);
+    }, 3000);
   };
 
   const radius = 118;
   const circumference = 2 * Math.PI * radius;
   const progress = Math.min(seconds / pomodoroSeconds, 1);
   const strokeDashoffset = circumference - progress * circumference;
+
+  useEffect(() => {
+    return () => {
+      if (auroraTimeout.current) {
+        window.clearTimeout(auroraTimeout.current);
+      }
+    };
+  }, []);
+
+  if (isAuroraActive) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black text-white">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: 'easeInOut' }}
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 20% 20%, rgba(94,92,230,0.85), transparent 24%), radial-gradient(circle at 80% 25%, rgba(255,142,66,0.55), transparent 18%), radial-gradient(circle at 50% 78%, rgba(138,43,226,0.32), transparent 22%)'
+          }}
+        />
+        <div className="relative z-10 text-center space-y-4 px-6">
+          <p className="text-[13px] uppercase tracking-[0.35em] text-accent">Focus Reward</p>
+          <h1 className="text-[48px] font-light tracking-tight tabular-nums" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            Aurora Wash
+          </h1>
+          <p className="max-w-md text-[13px] text-white/70">
+            Your focus session completed. Returning to the dashboard with a calming gradient reward.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (showSummary) {
     return (
@@ -296,6 +398,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
 
   return (
     <div
+      data-env="sanctuary"
       className="fixed inset-0 flex flex-col items-center justify-center z-[100] overflow-hidden matte-grain"
       style={{
         background: '#000000',
@@ -347,25 +450,6 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
       </AnimatePresence>
 
       {/* Ambient HUD */}
-      <AnimatePresence>
-        {isActive && (
-          <motion.button initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            onClick={() => setIsSoundOn(s => !s)}
-            className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full flex items-center gap-3 text-[11px] font-medium"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', color: '#E5E5EA' }}>
-            <Radio size={12} style={{ color: '#A1A1AA' }} />
-            <span>{settings.soundMute ? 'Silence Mode' : 'Ambient HUD'}</span>
-            <span className="px-2 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: '#A1A1AA' }}>
-              {settings.soundMute ? 'Muted' : isSoundOn ? SOUND_PRESETS.find(p => p.id === selectedSound)?.label || 'Ambient' : 'Paused'}
-            </span>
-            <div className="h-1.5 w-16 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
-              <motion.div animate={{ width: `${volume}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #1D4ED8, #7C3AED)' }} />
-            </div>
-          </motion.button>
-        )}
-      </AnimatePresence>
 
       {/* Streak Flame + Timer centerpiece */}
       <motion.div
@@ -423,7 +507,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] flex flex-col items-center gap-7 w-full max-w-xs"
       >
-        <div className="flex items-end justify-center w-full px-4">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40">
           <LiquidVolumePillar volume={volume} onVolumeChange={setVolume} />
         </div>
 
@@ -463,6 +547,26 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
           </button>
         </div>
       </motion.div>
+
+      {isActive && (
+        <AmbientHUD
+          isActive={isActive}
+          isSoundOn={isSoundOn}
+          currentSound={currentSound.label}
+          volume={volume}
+          onToggleSound={() => setIsSoundOn(s => !s)}
+          onNextSound={() => {
+            const currentIndex = SOUND_PRESETS.findIndex(p => p.id === selectedSound);
+            const next = SOUND_PRESETS[(currentIndex + 1) % SOUND_PRESETS.length];
+            setSelectedSound(next.id);
+            setIsSoundOn(true);
+          }}
+          onMute={() => {
+            setIsSoundOn(false);
+            focusAudio.kill().catch(() => {});
+          }}
+        />
+      )}
 
       {/* Audio suspended toast */}
       <AnimatePresence>

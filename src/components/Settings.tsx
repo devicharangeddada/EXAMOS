@@ -96,7 +96,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       <CategoryRow icon={<Brain size={19} />} title="Study Methods" description="Leitner, Feynman, SQ3R, Blurting" onClick={() => setView('study-methods')} />
       <CategoryRow icon={<Database size={19} />} title="Data" description="Backup, export, restore system" onClick={() => setView('data')} />
       <CategoryRow icon={<SettingsIcon size={19} />} title="Advanced" description="Experimental, system info" onClick={() => setView('advanced')} />
-      <CategoryRow icon={<Info size={19} />} title="About EchOS" description="imdvichrn · Echoless · Build info" onClick={() => setView('about')} />
+      <CategoryRow icon={<Info size={19} />} title="About EchOS" description="EchOS identity, build info" onClick={() => setView('about')} />
     </motion.div>
   );
 
@@ -241,6 +241,18 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
               <span>2m</span><span>5m</span><span>10m</span><span>20m</span>
             </div>
           </div>
+
+          <div className="space-y-small pt-small">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[15px] font-medium text-primary">Target Exam Date</p>
+                <p className="text-[12px] text-secondary">Keep your study deadlines aligned</p>
+              </div>
+              <input type="date" value={examDate.slice(0, 10)}
+                onChange={(e) => setExamDate(e.target.value)}
+                className="bg-action-light dark:bg-action-dark border border-border-color rounded-2xl px-3 py-2 text-[13px] text-primary" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -289,6 +301,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         tagline="5-Box Spaced Repetition"
         description="Cards move through 5 boxes based on recall success. Box 0 = daily review. Box 4 = mastered. Failed cards reset to Box 0."
         infographic={<LeitnerInfographic />}
+        selected={settings.activeStudyMethod === 'leitner'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'leitner' })}
         howItWorks={[
           "Add a flashcard to Box 0",
           "If recalled correctly → advance one box",
@@ -306,6 +320,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         tagline="Teach it simply"
         description="Explain a concept as if to a 12-year-old. Gaps in your explanation reveal gaps in your understanding."
         infographic={<FeynmanInfographic />}
+        selected={settings.activeStudyMethod === 'feynman'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'feynman' })}
         howItWorks={[
           "Choose a concept to master",
           "Explain it in plain, simple language",
@@ -323,6 +339,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         tagline="Survey · Question · Read · Recite · Review"
         description="A structured reading strategy that converts passive reading into active learning with built-in self-testing."
         infographic={<SQ3RInfographic />}
+        selected={settings.activeStudyMethod === 'spaced-repetition'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'spaced-repetition' })}
         howItWorks={[
           "Survey: skim headings and bold text",
           "Question: turn headings into questions",
@@ -340,6 +358,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         tagline="Maximum recall intensity"
         description="Close all resources and write (or type) everything you know about a topic in one go. Brutal but highly effective for exam prep."
         infographic={<BlurtingInfographic />}
+        selected={settings.activeStudyMethod === 'blurting'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'blurting' })}
         howItWorks={[
           "Study a topic once",
           "Close all notes and resources",
@@ -392,12 +412,12 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       <SubpageHeader title="Notifications" onBack={() => setView('root')} />
       <div className="space-y-nano">
         <p className="caption-sm text-tertiary px-2">Study Reminders</p>
-        <ToggleRow title="Daily Goal Reminder" description="Notify when daily study goal is not met" enabled={true} onToggle={() => {}} />
-        <ToggleRow title="Streak Protection" description="Alert 1 hour before streak expires" enabled={true} onToggle={() => {}} />
+        <ToggleRow title="Daily Goal Reminder" description="Notify when daily study goal is not met" enabled={settings.dailyGoalReminder} onToggle={() => updateSettings({ dailyGoalReminder: !settings.dailyGoalReminder })} />
+        <ToggleRow title="Streak Protection" description="Alert 1 hour before streak expires" enabled={settings.streakProtection} onToggle={() => updateSettings({ streakProtection: !settings.streakProtection })} />
       </div>
       <div className="space-y-nano">
         <p className="caption-sm text-tertiary px-2">System Alerts</p>
-        <ToggleRow title="Exam Urgency" description="Show countdown on lock screen" enabled={false} onToggle={() => {}} />
+        <ToggleRow title="Exam Urgency" description="Show countdown on lock screen" enabled={settings.urgencyAlerts} onToggle={() => updateSettings({ urgencyAlerts: !settings.urgencyAlerts })} />
       </div>
     </motion.div>
   );
@@ -407,13 +427,13 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       <SubpageHeader title="Advanced" onBack={() => setView('root')} />
       <div className="space-y-nano">
         <p className="caption-sm text-tertiary px-2">Experimental</p>
-        <ToggleRow title="Haptic Feedback" description="Simulated vibrations on interaction" enabled={true} onToggle={() => {}} />
-        <ToggleRow title="GPU Acceleration" description="Force hardware rendering for animations" enabled={true} onToggle={() => {}} />
+        <ToggleRow title="Haptic Feedback" description="Simulated vibrations on interaction" enabled={settings.hapticFeedback} onToggle={() => updateSettings({ hapticFeedback: !settings.hapticFeedback })} />
+        <ToggleRow title="GPU Acceleration" description="Force hardware rendering for animations" enabled={settings.gpuAcceleration} onToggle={() => updateSettings({ gpuAcceleration: !settings.gpuAcceleration })} />
       </div>
       <div className="surface-card p-medium space-y-small">
         {[
-          ['System Version', 'v1.3.0-sanctuary'],
-          ['Build ID', 'IMD-ECH-PRIME-01'],
+          ['System Version', 'v2.0-sanctuary'],
+          ['Build ID', 'IMD-ECH-01'],
           ['Audio Engine', 'Web Audio API v2'],
           ['Storage', 'IndexedDB + localStorage'],
         ].map(([label, value]) => (
@@ -436,7 +456,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
           <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent font-bold text-[18px]">EO</div>
           <div>
             <p className="text-[18px] font-medium tracking-tighter text-primary">EchOS</p>
-            <p className="text-[12px] text-secondary">Study Sanctuary · Build IMD-ECH-PRIME-01</p>
+            <p className="text-[12px] text-secondary">Study Sanctuary · Build IMD-ECH-01</p>
           </div>
         </div>
         <p className="text-[13px] text-secondary leading-relaxed">
@@ -465,7 +485,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[14px]">EC</div>
           <div className="flex-1">
             <p className="text-[15px] font-medium text-primary">Echoless</p>
-            <p className="text-[12px] text-secondary">AI Signals & Design System</p>
+            <p className="text-[12px] text-secondary">Echoless Intelligence System — Personal AI Assistant to geddada devicharan</p>
           </div>
         </div>
       </div>
@@ -476,7 +496,6 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         {[
           { label: 'GitHub', sub: 'Source & contributions', href: 'https://github.com/imdvichrn' },
           { label: 'Twitter / X', sub: '@imdvichrn', href: 'https://twitter.com/imdvichrn' },
-          { label: 'Support', sub: 'Report a bug or feature request', href: 'mailto:support@echoless.app' },
         ].map(link => (
           <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
             className={cn("w-full flex items-center gap-medium px-medium rounded-2xl transition-all group relative", "h-[var(--row-height)] hover:bg-action-light/50 dark:hover:bg-action-dark/50")}>
@@ -491,7 +510,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       </div>
 
       <p className="text-center text-[11px] text-tertiary pb-4">
-        EchOS · imdvichrn · Echoless · IMD-ECH-PRIME-01
+        EchOS · imdvichrn · Echoless · IMD-ECH-01
       </p>
     </motion.div>
   );
@@ -580,9 +599,11 @@ interface MethodCardProps {
   description: string;
   infographic: React.ReactNode;
   howItWorks: string[];
+  selected?: boolean;
+  onChoose?: () => void;
 }
 
-function MethodCard({ icon, color, title, tagline, description, infographic, howItWorks }: MethodCardProps) {
+function MethodCard({ icon, color, title, tagline, description, infographic, howItWorks, selected, onChoose }: MethodCardProps) {
   const [expanded, setExpanded] = useState(false);
   return (
     <motion.div
@@ -596,7 +617,10 @@ function MethodCard({ icon, color, title, tagline, description, infographic, how
           {icon}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-medium tracking-tighter text-primary">{title}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[15px] font-medium tracking-tighter text-primary">{title}</p>
+            {selected && <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success">Selected</span>}
+          </div>
           <p className="text-[11px] font-medium" style={{ color }}>{tagline}</p>
           <p className="text-[12px] text-secondary mt-1 leading-snug">{description}</p>
         </div>
@@ -623,6 +647,20 @@ function MethodCard({ icon, color, title, tagline, description, infographic, how
                   </div>
                 ))}
               </div>
+              {onChoose && (
+                <div className="pt-medium">
+                  {selected ? (
+                    <div className="rounded-2xl border border-success/20 bg-success/5 px-4 py-3 text-[13px] text-success">
+                      Current active study method
+                    </div>
+                  ) : (
+                    <button onClick={(event) => { event.stopPropagation(); onChoose(); }}
+                      className="primary-button w-full">
+                      Use this method
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -656,11 +694,11 @@ function FeynmanInfographic() {
   return (
     <div className="flex items-center gap-1">
       {steps.map((s, i) => (
-        <React.Fragment key={s}>
+        <>
           <div className="px-2 py-1 rounded-lg text-[10px] font-medium text-white"
             style={{ background: `hsl(${120 + i * 30},60%,45%)` }}>{s}</div>
           {i < steps.length - 1 && <span className="text-tertiary text-[10px]">→</span>}
-        </React.Fragment>
+        </>
       ))}
     </div>
   );

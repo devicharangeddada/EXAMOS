@@ -32,6 +32,12 @@ export const DEFAULT_STATE: AppState = {
     pomodoroLength: 25,
     breakLength: 5,
     strictMode: false,
+    dailyGoalReminder: true,
+    streakProtection: true,
+    urgencyAlerts: true,
+    gpuAcceleration: false,
+    hapticFeedback: true,
+    activeStudyMethod: 'pomodoro',
   },
   activeSlotId: null,
 };
@@ -55,6 +61,13 @@ export const loadState = (): AppState => {
         pomodoroLength: parsed.settings?.pomodoroLength ?? 25,
         breakLength: parsed.settings?.breakLength ?? 5,
         strictMode: parsed.settings?.strictMode ?? false,
+        dailyGoalReminder: parsed.settings?.dailyGoalReminder ?? true,
+        streakProtection: parsed.settings?.streakProtection ?? true,
+        urgencyAlerts: parsed.settings?.urgencyAlerts ?? true,
+        gpuAcceleration: parsed.settings?.gpuAcceleration ?? false,
+        hapticFeedback: parsed.settings?.hapticFeedback ?? true,
+        activeStudyMethod: parsed.settings?.activeStudyMethod ?? 'pomodoro',
+        timeFormat: parsed.settings?.timeFormat ?? '12h',
       }
     };
   } catch {

@@ -27,6 +27,10 @@ export function useEchOS() {
   }, [currentPage]);
 
   useEffect(() => {
+    document.documentElement.dataset.gpu = state.settings.gpuAcceleration ? 'true' : 'false';
+  }, [state.settings.gpuAcceleration]);
+
+  useEffect(() => {
     if (state.settings.strictMode && isFocusActive && currentPage !== 'focus') {
       setCurrentPage('focus');
     }

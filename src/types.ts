@@ -71,6 +71,12 @@ export interface AppSettings {
   pomodoroLength: number;   // in minutes, default 25
   breakLength: number;      // in minutes, default 5
   strictMode: boolean;      // lock navigation during focus
+  dailyGoalReminder: boolean; // quiet reminders when goal is pending
+  streakProtection: boolean;  // streak expiry alerts
+  urgencyAlerts: boolean;     // exam countdown and urgency signals
+  gpuAcceleration: boolean;   // enable hardware rendering hints
+  hapticFeedback: boolean;    // simulated haptics on interaction
+  activeStudyMethod: 'pomodoro' | 'deep-work' | '52-17' | 'flowtime' | 'time-blocking' | 'active-recall' | 'spaced-repetition' | 'blurting' | 'feynman' | 'leitner';
 }
 
 export interface StudySession {

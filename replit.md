@@ -1,6 +1,6 @@
 # EchOS — Sanctuary Study System
 
-**Build ID: IMD-ECH-PRIME-01**  
+**Build ID: IMD-ECH-01**  
 Developed by imdvichrn & Echoless
 
 ## Overview
@@ -11,8 +11,6 @@ A premium Apple-style study sanctuary app built with React + Vite + TypeScript. 
 - **Styling**: Tailwind CSS v4 (custom design token system)
 - **Animations**: Motion (Framer Motion) — Liquid Spring physics (stiffness: 300, damping: 30)
 - **Charts**: Recharts, D3
-- **AI**: Google Gemini API (`@google/genai`)
-- **Icons**: Lucide React
 - **Storage**: localStorage + IndexedDB (via `idb`)
 - **PDF**: react-pdf
 - **Audio**: Web Audio API (custom AudioController with crossfade)

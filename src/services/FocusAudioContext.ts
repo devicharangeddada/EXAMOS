@@ -12,10 +12,10 @@ interface SoundPreset {
 }
 
 export const SOUND_PRESETS: SoundPreset[] = [
-  { id: 'white', label: 'White Noise' },
-  { id: 'rain',  label: 'Rain' },
-  { id: 'brown', label: 'Brown Noise' },
-  { id: 'cafe',  label: 'Ambient Café' },
+  { id: 'white', label: 'Ethereal White Noise' },
+  { id: 'rain',  label: 'Deep Rain' },
+  { id: 'brown', label: 'Forest Brown Noise' },
+  { id: 'cafe',  label: 'Café Focus' },
 ];
 
 /** Generate a buffer of the requested noise type */
@@ -151,17 +151,42 @@ class AudioController {
     const t = this.context.currentTime;
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + fadeTime);
-    setTimeout(() => {
+
+    if (fadeTime <= 0) {
       try { source?.stop(); source?.disconnect(); gain.disconnect(); } catch {}
-    }, fadeTime * 1000 + 100);
+    } else {
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + fadeTime);
+      setTimeout(() => {
+        try { source?.stop(); source?.disconnect(); gain.disconnect(); } catch {}
+      }, fadeTime * 1000 + 100);
+    }
+
     this.currentSource = null;
     this.currentGain = null;
     this.currentPresetId = null;
   }
 
+  public async kill(): Promise<void> {
+    this._stopCurrent(0);
+    if (this.context) {
+      try {
+        await this.context.close();
+      } catch {}
+    }
+    this.context = null;
+    this.masterGain = null;
+    this.currentFilter = null;
+    this.currentGain = null;
+    this.currentSource = null;
+    this.currentPresetId = null;
+    this.bufferCache.clear();
+  }
+
   public async play(id: SoundPresetId): Promise<void> {
     await this.initialize();
+    if (this.context?.state === 'suspended') {
+      await this.context.resume();
+    }
 
     // Already playing this preset
     if (this.currentPresetId === id && this.currentSource) return;

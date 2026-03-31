@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -51,6 +46,11 @@ export default function App() {
   const transitionDuration = useMemo(() => {
     return themeClass === 'theme-night' ? 0.5 : 0.3;
   }, [themeClass]);
+
+  const appName = useMemo(() => {
+    if (currentPage === 'focus') return 'EchOS';
+    return 'imdvichrn';
+  }, [currentPage]);
 
   const renderPage = () => {
     if (!state.onboarding.completed) {
@@ -157,7 +157,7 @@ export default function App() {
               EO
             </div>
             <div className="flex flex-col">
-              <h1 className="text-[16px] font-medium tracking-tight text-primary truncate">EchOS</h1>
+              <h1 className="text-[16px] font-medium tracking-tight text-primary truncate">{appName}</h1>
               <span className="text-[10px] text-tertiary">Developed by imdvichrn &amp; Echoless</span>
             </div>
           </div>

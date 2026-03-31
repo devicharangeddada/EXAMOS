@@ -80,7 +80,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 <label className="text-[11px] uppercase tracking-wider font-bold text-tertiary">Exam Name</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. MCAT, Bar Exam, Final Finals"
+                  placeholder="e.g. Power Systems Exam, Core Cert, Final Review"
                   value={data.examName}
                   onChange={e => setData(prev => ({ ...prev, examName: e.target.value }))}
                   className="w-full h-14 bg-action-light/30 dark:bg-action-dark/30 border border-border-color rounded-2xl px-medium focus:border-accent transition-colors outline-none text-primary"

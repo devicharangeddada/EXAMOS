@@ -176,7 +176,18 @@
       transform: translateY(-2px);
     }
   }
+  :root[data-gpu="true"] {
+    --gpu-acceleration: 1;
+  }
 
+  :root[data-gpu="true"] .primary-button,
+  :root[data-gpu="true"] .secondary-button,
+  :root[data-gpu="true"] .surface-card,
+  :root[data-gpu="true"] .elevated-card {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+  }
   .focus-breathing-bg {
     background-color: var(--bg-sanctuary);
     background-image: 
