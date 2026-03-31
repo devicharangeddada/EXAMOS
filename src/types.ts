@@ -62,9 +62,11 @@ export interface StudyNode {
 export interface AppSettings {
   theme: 'light' | 'dark' | 'night' | 'auto';
   density: 'compact' | 'default' | 'comfortable';
-  soundType: 'white' | 'rain' | 'brown';
+  soundType: 'white' | 'rain' | 'brown' | 'cafe';
+  soundMute: boolean;
   volume: number;
   autoPlay: boolean;
+  autoStartBreaks: boolean;
   timeFormat: '12h' | '24h';
   pomodoroLength: number;   // in minutes, default 25
   breakLength: number;      // in minutes, default 5

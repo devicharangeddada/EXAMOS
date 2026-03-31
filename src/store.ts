@@ -1,6 +1,6 @@
 import { AppState, StudyNode, Note, StudySession, AppSettings } from './types';
 
-export const STORAGE_KEY = 'examflow_os_data';
+export const STORAGE_KEY = 'echos_os_data';
 
 const getInitialDensity = (): 'compact' | 'default' | 'comfortable' => {
   if (typeof window === 'undefined') return 'default';
@@ -24,8 +24,10 @@ export const DEFAULT_STATE: AppState = {
     theme: 'auto',
     density: getInitialDensity(),
     soundType: 'white',
+    soundMute: false,
     volume: 0.5,
     autoPlay: false,
+    autoStartBreaks: false,
     timeFormat: '12h',
     pomodoroLength: 25,
     breakLength: 5,
@@ -45,7 +47,11 @@ export const loadState = (): AppState => {
       settings: {
         ...DEFAULT_STATE.settings,
         ...parsed.settings,
-        // Ensure new fields have defaults
+        soundMute: parsed.settings?.soundMute ?? false,
+        autoStartBreaks: parsed.settings?.autoStartBreaks ?? false,
+        soundType: parsed.settings?.soundType ?? 'white',
+        volume: parsed.settings?.volume ?? 0.5,
+        autoPlay: parsed.settings?.autoPlay ?? false,
         pomodoroLength: parsed.settings?.pomodoroLength ?? 25,
         breakLength: parsed.settings?.breakLength ?? 5,
         strictMode: parsed.settings?.strictMode ?? false,

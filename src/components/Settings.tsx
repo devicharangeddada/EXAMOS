@@ -68,7 +68,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
 
   const handleConfirmImport = () => {
     if (!pendingImportState) return;
-    localStorage.setItem('examflow_os_data', JSON.stringify(pendingImportState));
+    localStorage.setItem('echos_os_data', JSON.stringify(pendingImportState));
     onImportState(pendingImportState);
     setShowImportConfirm(false);
     setPendingImportState(null);
@@ -77,7 +77,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
   const activeDensity = hoverDensity || settings.density;
 
   const exportData = () => {
-    const data = localStorage.getItem('examflow_os_data');
+    const data = localStorage.getItem('echos_os_data');
     if (!data) return;
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -162,14 +162,14 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
 
       <div className="space-y-nano">
         <p className="caption-sm text-tertiary px-2">Ambient Engine</p>
-        <div className="grid grid-cols-3 gap-2">
-          {(['white', 'rain', 'brown'] as const).map(s => (
+        <div className="grid grid-cols-2 gap-2">
+          {(['white', 'rain', 'brown', 'cafe'] as const).map(s => (
             <motion.button key={s} onClick={() => updateSettings({ soundType: s })}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className={cn("body-md font-medium py-3 rounded-xl transition-all border",
                 settings.soundType === s ? "bg-accent text-white border-accent shadow-lg shadow-accent/20" : "bg-action-light dark:bg-action-dark border-transparent text-secondary")}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === 'cafe' ? 'Café' : s.charAt(0).toUpperCase() + s.slice(1)}
             </motion.button>
           ))}
         </div>
@@ -196,6 +196,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       </div>
 
       <ToggleRow title="Auto-play Ambient" description="Start soundscape when focus begins" enabled={settings.autoPlay} onToggle={() => updateSettings({ autoPlay: !settings.autoPlay })} />
+      <ToggleRow title="Silence Mode" description="Mute ambient audio while preserving focus timing" enabled={settings.soundMute} onToggle={() => updateSettings({ soundMute: !settings.soundMute })} />
     </motion.div>
   );
 
@@ -254,8 +255,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         <ToggleRow
           title="Auto-Start Breaks"
           description="Seamless transitions between sessions"
-          enabled={true}
-          onToggle={() => {}}
+          enabled={settings.autoStartBreaks}
+          onToggle={() => updateSettings({ autoStartBreaks: !settings.autoStartBreaks })}
         />
       </div>
 

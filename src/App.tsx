@@ -14,8 +14,6 @@ import {
   Timer,
   ChevronLeft,
 } from 'lucide-react';
-import { AppState, StudyNode, StudySession } from './types';
-import { loadState, saveState } from './store';
 import Dashboard from './components/Dashboard';
 import Syllabus from './components/Syllabus';
 import FocusRoom from './components/FocusRoom';
@@ -25,138 +23,39 @@ import Settings from './components/Settings';
 import FloatingNav from './components/FloatingNav';
 import { cn } from './lib/utils';
 import Onboarding from './components/Onboarding';
-
-type Page = 'dashboard' | 'syllabus' | 'focus' | 'flashcards' | 'stats' | 'settings';
+import { useEchOS, Page } from './hooks/useEchOS';
 
 export default function App() {
-  const [state, setState] = useState<AppState>(loadState());
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [isFocusActive, setIsFocusActive] = useState(false);
+  const {
+    state,
+    currentPage,
+    setCurrentPage,
+    isFocusActive,
+    setIsFocusActive,
+    updateNodes,
+    addSession,
+    updateSettings,
+    setExamDate,
+    completeOnboarding,
+    setActiveSlotId,
+    handleImportState,
+    handleReset,
+    handlePageChange,
+    isNavLocked,
+    themeClass,
+  } = useEchOS();
 
-  // Migration for attachments
-  useEffect(() => {
-    setState(prev => {
-      let changed = false;
-      const nextNodes = { ...prev.nodes };
-      Object.keys(nextNodes).forEach(id => {
-        if (!nextNodes[id].attachments) {
-          nextNodes[id].attachments = [];
-          changed = true;
-        }
-      });
-      if (changed) return { ...prev, nodes: nextNodes };
-      return prev;
-    });
-  }, []);
-
-  // Persistence
-  useEffect(() => {
-    saveState(state);
-  }, [state]);
-
-  // Track interrupted session
-  useEffect(() => {
-    if (currentPage === 'focus' && state.activeSlotId) {
-      setState(prev => ({
-        ...prev,
-        interruptedSession: { nodeId: state.activeSlotId!, timestamp: Date.now() }
-      }));
-    } else if (currentPage !== 'focus') {
-      setState(prev => ({ ...prev, interruptedSession: undefined }));
-    }
-  }, [currentPage, state.activeSlotId]);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // State Updaters
-  const updateNodes = (updater: (nodes: Record<string, StudyNode>) => Record<string, StudyNode>) => {
-    setState(prev => ({ ...prev, nodes: updater(prev.nodes) }));
-  };
-
-  const addSession = (session: StudySession) => {
-    const difficultyMap = { easy: 1, medium: 2, hard: 3 };
-    setState(prev => {
-      const node = prev.nodes[session.nodeId];
-      if (!node) return { ...prev, sessions: [...prev.sessions, session] };
-      return {
-        ...prev,
-        sessions: [...prev.sessions, session],
-        nodes: {
-          ...prev.nodes,
-          [session.nodeId]: {
-            ...node,
-            focusDifficulty: difficultyMap[session.difficulty],
-            lastInteraction: new Date().toISOString()
-          }
-        }
-      };
-    });
-  };
-
-  const updateSettings = (settings: Partial<AppState['settings']>) => {
-    setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
-  };
-
-  const handleImportState = (nextState: AppState) => setState(nextState);
-
-  const setExamDate = (date: string) => {
-    setState(prev => ({ ...prev, onboarding: { ...prev.onboarding, examDate: date } }));
-  };
-
-  // Focus Mode Environment Trigger
-  useEffect(() => {
-    if (currentPage === 'focus') {
-      document.documentElement.setAttribute('data-env', 'sanctuary');
-    } else {
-      document.documentElement.removeAttribute('data-env');
-    }
-  }, [currentPage]);
-
-  const themeClass = useMemo(() => {
-    let theme = state.settings.theme;
-    if (theme === 'auto') {
-      const hour = new Date().getHours();
-      theme = (hour >= 20 || hour < 6) ? 'night' : 'light';
-    }
-    switch (theme) {
-      case 'dark': return 'theme-dark';
-      case 'night': return 'theme-night';
-      default: return 'theme-light';
-    }
-  }, [state.settings.theme]);
+  const [flashcardMode, setFlashcardMode] = useState<'normal' | 'weak-only'>('normal');
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const transitionDuration = useMemo(() => {
     return themeClass === 'theme-night' ? 0.5 : 0.3;
   }, [themeClass]);
 
-  const [flashcardMode, setFlashcardMode] = useState<'normal' | 'weak-only'>('normal');
-
-  const handlePageChange = (page: Page, nodeId?: string, mode: 'normal' | 'weak-only' = 'normal') => {
-    // Strict Mode: block navigation away from focus while session is active
-    if (currentPage === 'focus' && state.settings.strictMode && isFocusActive && page !== 'focus') {
-      return;
-    }
-    setCurrentPage(page);
-    setFlashcardMode(mode);
-    if (nodeId) setState(prev => ({ ...prev, activeSlotId: nodeId }));
-  };
-
-  const [showResetModal, setShowResetModal] = useState(false);
-
-  const handleReset = () => {
-    localStorage.clear();
-    window.location.reload();
-  };
-
   const renderPage = () => {
     if (!state.onboarding.completed) {
       return <Onboarding onComplete={(onboarding, nodes) => {
-        setState(prev => ({ ...prev, onboarding: { ...onboarding, completed: true }, nodes }));
+        completeOnboarding(onboarding, nodes);
       }} />;
     }
 
@@ -179,7 +78,7 @@ export default function App() {
           updateNodes={updateNodes}
           activeNodeId={state.activeSlotId}
           onStartFocus={(id) => handlePageChange('focus', id)}
-          onSelectNode={(id) => setState(prev => ({ ...prev, activeSlotId: id }))}
+          onSelectNode={(id) => setActiveSlotId(id)}
           onRecall={(id) => handlePageChange('flashcards', id)}
         />;
       case 'focus':
@@ -235,9 +134,6 @@ export default function App() {
   ];
 
   const densityClass = `density-${state.settings.density || 'default'}`;
-
-  // Strict mode: lock navigation while focus is active
-  const isNavLocked = currentPage === 'focus' && state.settings.strictMode && isFocusActive;
 
   return (
     <div className={cn("h-screen flex flex-col overflow-hidden", themeClass, densityClass)}>

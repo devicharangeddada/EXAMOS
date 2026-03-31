@@ -110,7 +110,7 @@ function LiquidVolumePillar({ volume, onVolumeChange }: { volume: number; onVolu
 export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, onCancel, onFocusActiveChange }: FocusRoomProps) {
   const [isActive, setIsActive] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [isSoundOn, setIsSoundOn] = useState(settings.autoPlay);
+  const [isSoundOn, setIsSoundOn] = useState(!settings.soundMute && settings.autoPlay);
   const [selectedSound, setSelectedSound] = useState<SoundPresetId>(focusAudio.getCurrentPreset() || settings.soundType as SoundPresetId || 'white');
   const [volume, setVolume] = useState(focusAudio.getVolume() * 100);
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
@@ -137,12 +137,25 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   }, [isActive]);
 
   useEffect(() => {
-    if (isActive && isSoundOn) {
+    if (isActive && seconds >= pomodoroSeconds) {
+      setIsActive(false);
+      setShowSummary(true);
+    }
+  }, [seconds, isActive, pomodoroSeconds]);
+
+  useEffect(() => {
+    if (settings.soundMute) {
+      setIsSoundOn(false);
+    }
+  }, [settings.soundMute]);
+
+  useEffect(() => {
+    if (isActive && isSoundOn && !settings.soundMute) {
       focusAudio.play(selectedSound).catch(() => setIsAudioSuspended(true));
     } else {
       focusAudio.stop();
     }
-  }, [isActive, isSoundOn, selectedSound]);
+  }, [isActive, isSoundOn, selectedSound, settings.soundMute]);
 
   useEffect(() => { focusAudio.setVolume(volume / 100); }, [volume]);
 
@@ -335,19 +348,22 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
 
       {/* Ambient HUD */}
       <AnimatePresence>
-        {isActive && isSoundOn && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+        {isActive && (
+          <motion.button initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full flex items-center gap-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)' }}>
-            <Radio size={12} style={{ color: '#52525B' }} />
-            <span className="text-[11px] font-medium" style={{ color: '#A1A1AA' }}>
-              {SOUND_PRESETS.find(p => p.id === selectedSound)?.label || 'Ambient'}
+            onClick={() => setIsSoundOn(s => !s)}
+            className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full flex items-center gap-3 text-[11px] font-medium"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)', color: '#E5E5EA' }}>
+            <Radio size={12} style={{ color: '#A1A1AA' }} />
+            <span>{settings.soundMute ? 'Silence Mode' : 'Ambient HUD'}</span>
+            <span className="px-2 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)', color: '#A1A1AA' }}>
+              {settings.soundMute ? 'Muted' : isSoundOn ? SOUND_PRESETS.find(p => p.id === selectedSound)?.label || 'Ambient' : 'Paused'}
             </span>
-            <div className="w-12 h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full rounded-full" style={{ width: `${volume}%`, background: 'rgba(255,255,255,0.4)' }} />
+            <div className="h-1.5 w-16 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+              <motion.div animate={{ width: `${volume}%` }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="h-full rounded-full" style={{ background: 'linear-gradient(90deg, #1D4ED8, #7C3AED)' }} />
             </div>
-          </motion.div>
+          </motion.button>
         )}
       </AnimatePresence>
 
@@ -407,47 +423,9 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] flex flex-col items-center gap-7 w-full max-w-xs"
       >
-        {/* Sound selector + Volume pillar */}
-        {!isActive && (
-          <div className="flex items-end justify-center gap-8 w-full px-4">
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex gap-nano rounded-2xl p-1"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                {SOUND_PRESETS.map(s => {
-                  const Icon = s.id === 'white' ? Radio : s.id === 'rain' ? Droplets : s.id === 'brown' ? Wind : Coffee;
-                  return (
-                    <motion.button key={s.id}
-                      whileTap={{ scale: 0.92 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                      onClick={() => setSelectedSound(s.id)}
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                      style={{
-                        background: selectedSound === s.id ? 'var(--color-accent)' : 'transparent',
-                        color: selectedSound === s.id ? '#fff' : '#52525B'
-                      }}>
-                      <Icon size={17} />
-                    </motion.button>
-                  );
-                })}
-              </div>
-              {/* Single Silence toggle */}
-              <motion.button
-                whileTap={{ scale: 0.93 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                onClick={() => setIsSoundOn(s => !s)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all"
-                style={{
-                  background: isSoundOn ? 'rgba(255,255,255,0.05)' : 'rgba(74,144,226,0.12)',
-                  color: isSoundOn ? '#52525B' : '#4A90E2',
-                  border: `1px solid ${isSoundOn ? 'rgba(255,255,255,0.07)' : 'rgba(74,144,226,0.3)'}`
-                }}>
-                {isSoundOn ? <Volume2 size={12} /> : <VolumeX size={12} />}
-                {isSoundOn ? 'Silence' : 'Sound On'}
-              </motion.button>
-            </div>
-            <LiquidVolumePillar volume={volume} onVolumeChange={setVolume} />
-          </div>
-        )}
+        <div className="flex items-end justify-center w-full px-4">
+          <LiquidVolumePillar volume={volume} onVolumeChange={setVolume} />
+        </div>
 
         {/* Play + Cancel */}
         <div className="flex items-center gap-6">
