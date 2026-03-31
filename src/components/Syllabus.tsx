@@ -1,10 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyNode, NodeStatus } from '../types';
 import { 
   Plus, 
-  ChevronDown, 
-  ChevronRight, 
   Trash2, 
   Edit3, 
   Play,
@@ -15,12 +13,7 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
-  Brain,
-  FileText,
-  Image as ImageIcon,
-  MoreHorizontal,
   X,
-  ArrowRight
 } from 'lucide-react';
 import React from 'react';
 import { cn } from '../lib/utils';
@@ -35,35 +28,52 @@ interface SyllabusProps {
   onRecall: (id: string) => void;
 }
 
+/** Minimal sparkline SVG rendered from last 6 data points */
+function VelocitySparkline({ value }: { value: number }) {
+  const points = useMemo(() => {
+    // Synthesise fake velocity curve ending at current value
+    const base = Math.max(0, value - 40);
+    const pts = [base, base + 8, base + 15, base + 22, base + 30, value].map(v => Math.min(100, Math.max(0, v)));
+    return pts;
+  }, [value]);
+
+  const w = 40, h = 14;
+  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
+  const ys = points.map(v => h - (v / 100) * h);
+  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
+
+  return (
+    <svg width={w} height={h} className="opacity-60 shrink-0">
+      <path d={d} fill="none" stroke="rgba(74,144,226,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r="2" fill="rgba(74,144,226,1)" />
+    </svg>
+  );
+}
+
 export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocus, onSelectNode, onRecall }: SyllabusProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(activeNodeId);
+  const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
 
-  // Parent-Child Roll-up Logic
   const nodeCompletions = useMemo(() => {
     const completions: Record<string, number> = {};
-    
     const getComp = (id: string): number => {
       if (completions[id] !== undefined) return completions[id];
       const node = nodes[id];
       if (!node) return 0;
       const children = Object.values(nodes).filter(n => n.parentId === id);
-      
       if (children.length === 0) {
         const val = node.status === 'done' ? 100 : node.status === 'in-progress' ? 50 : 0;
         completions[id] = val;
         return val;
       }
-      
-      const totalWeight = children.length;
       const sum = children.reduce((acc, child) => acc + getComp(child.id), 0);
-      const val = Math.round(sum / totalWeight);
+      const val = Math.round(sum / children.length);
       completions[id] = val;
       return val;
     };
-
     Object.keys(nodes).forEach(getComp);
     return completions;
   }, [nodes]);
@@ -74,9 +84,7 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       .sort((a, b) => a.order - b.order);
   }, [nodes]);
 
-  const priorityNodes = useMemo(() => {
-    return Object.values(nodes).filter(n => n.isPriority);
-  }, [nodes]);
+  const priorityNodes = useMemo(() => Object.values(nodes).filter(n => n.isPriority), [nodes]);
 
   const globalStats = useMemo(() => {
     const all = Object.values(nodes);
@@ -84,7 +92,6 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
     const pending = all.filter(n => n.status === 'revise' || n.status === 'in-progress').length;
     const total = all.length;
     const avgComp = total > 0 ? Math.round(all.reduce((acc, n) => acc + (nodeCompletions[n.id] || 0), 0) / total) : 0;
-    
     return { done, pending, avgComp };
   }, [nodes, nodeCompletions]);
 
@@ -98,19 +105,11 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const addNode = (parentId: string | null = null) => {
     const id = Math.random().toString(36).substring(7);
     const newNode: StudyNode = {
-      id,
-      title: parentId ? 'New Topic' : 'New Subject',
-      parentId,
-      status: 'not-started',
-      notes: [],
+      id, title: parentId ? 'New Topic' : 'New Subject', parentId,
+      status: 'not-started', notes: [], attachments: [],
       order: Object.values(nodes).filter(n => n.parentId === parentId).length,
-      weight: 1,
-      failCount: 0,
-      focusDifficulty: 0,
-      lastInteraction: new Date().toISOString(),
-      isPriority: false,
-      completion: 0,
-      attachments: []
+      weight: 1, failCount: 0, focusDifficulty: 0,
+      lastInteraction: new Date().toISOString(), isPriority: false, completion: 0,
     };
     updateNodes(prev => ({ ...prev, [id]: newNode }));
     setEditingNodeId(id);
@@ -122,17 +121,11 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   };
 
   const togglePriority = (id: string) => {
-    updateNodes(prev => ({
-      ...prev,
-      [id]: { ...prev[id], isPriority: !prev[id].isPriority }
-    }));
+    updateNodes(prev => ({ ...prev, [id]: { ...prev[id], isPriority: !prev[id].isPriority } }));
   };
 
   const updateNodeStatus = (id: string, status: NodeStatus) => {
-    updateNodes(prev => ({
-      ...prev,
-      [id]: { ...prev[id], status, lastInteraction: new Date().toISOString() }
-    }));
+    updateNodes(prev => ({ ...prev, [id]: { ...prev[id], status, lastInteraction: new Date().toISOString() } }));
   };
 
   const deleteNode = (id: string) => {
@@ -140,9 +133,7 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       const next = { ...prev };
       const deleteRecursive = (targetId: string) => {
         delete next[targetId];
-        Object.values(next).forEach(n => {
-          if (n.parentId === targetId) deleteRecursive(n.id);
-        });
+        Object.values(next).forEach(n => { if (n.parentId === targetId) deleteRecursive(n.id); });
       };
       deleteRecursive(id);
       return next;
@@ -155,21 +146,11 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       ...prev,
       [nodeId]: {
         ...prev[nodeId],
-        notes: [...prev[nodeId].notes, { 
-          id: Math.random().toString(36).substring(7), 
-          text,
-          details: details || '',
-          confidence: 1,
-          level: 0,
-          streak: 0,
-          failCount: 0,
-          wrongCount: 0,
-          urgencyScore: 0,
-          lastSeen: new Date().toISOString(),
-          nextDue: new Date().toISOString(),
-          leitnerBox: 0,
-          lastLeitnerMoveAt: new Date().toISOString(),
-          blurting: { attempts: 0 }
+        notes: [...prev[nodeId].notes, {
+          id: Math.random().toString(36).substring(7), text, details: details || '',
+          confidence: 1, level: 0, streak: 0, failCount: 0, wrongCount: 0, urgencyScore: 0,
+          lastSeen: new Date().toISOString(), nextDue: new Date().toISOString(),
+          leitnerBox: 0, lastLeitnerMoveAt: new Date().toISOString(), blurting: { attempts: 0 }
         }]
       }
     }));
@@ -178,38 +159,20 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const deleteNote = (nodeId: string, noteId: string) => {
     updateNodes(prev => ({
       ...prev,
-      [nodeId]: {
-        ...prev[nodeId],
-        notes: prev[nodeId].notes.filter(n => n.id !== noteId)
-      }
+      [nodeId]: { ...prev[nodeId], notes: prev[nodeId].notes.filter(n => n.id !== noteId) }
     }));
   };
 
   const addAttachment = async (nodeId: string, file: File) => {
     const id = Math.random().toString(36).substring(7);
-    const attachment = {
-      id,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      createdAt: new Date().toISOString()
-    };
-
+    const attachment = { id, name: file.name, type: file.type, size: file.size, createdAt: new Date().toISOString() };
     try {
-      // Save to IndexedDB
       const { saveFile } = await import('../lib/storage');
       await saveFile(id, file);
-
       updateNodes(prev => ({
         ...prev,
-        [nodeId]: {
-          ...prev[nodeId],
-          attachments: [...(prev[nodeId].attachments || []), attachment]
-        }
+        [nodeId]: { ...prev[nodeId], attachments: [...(prev[nodeId].attachments || []), attachment] }
       }));
-      
-      // Feedback
-      console.log('File added:', file.name);
     } catch (error) {
       console.error('Failed to add attachment:', error);
     }
@@ -218,51 +181,49 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const deleteAttachment = async (nodeId: string, attachmentId: string) => {
     const { deleteFile } = await import('../lib/storage');
     await deleteFile(attachmentId);
-
     updateNodes(prev => ({
       ...prev,
-      [nodeId]: {
-        ...prev[nodeId],
-        attachments: (prev[nodeId].attachments || []).filter(a => a.id !== attachmentId)
-      }
+      [nodeId]: { ...prev[nodeId], attachments: (prev[nodeId].attachments || []).filter(a => a.id !== attachmentId) }
     }));
   };
 
   return (
     <div className="flex flex-col md:flex-row gap-large py-medium">
-      {/* Left: Tree View */}
+      {/* Neural Map Tree */}
       <div className="flex-1 space-y-large">
-        {/* Sticky Top Bar: Global Stats */}
+        {/* Sticky Top Bar */}
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border-color py-small -mx-medium px-medium flex items-center justify-between">
           <div className="flex gap-medium">
             <div className="flex flex-col">
-              <span className="caption-sm text-tertiary">Total Done</span>
-              <span className="body-md font-bold text-primary">{globalStats.done}</span>
+              <span className="caption-sm text-tertiary">Mastered</span>
+              <span className="body-md font-medium tracking-tighter text-primary">{globalStats.done}</span>
             </div>
             <div className="w-px h-8 bg-border-color" />
             <div className="flex flex-col">
               <span className="caption-sm text-tertiary">Pending</span>
-              <span className="body-md font-bold text-primary">{globalStats.pending}</span>
+              <span className="body-md font-medium tracking-tighter text-primary">{globalStats.pending}</span>
             </div>
             <div className="w-px h-8 bg-border-color" />
             <div className="flex flex-col">
               <span className="caption-sm text-tertiary">Velocity</span>
               <div className="flex items-center gap-nano">
-                <span className="body-md font-bold text-accent">{globalStats.avgComp}%</span>
-                <div className="w-10 h-4 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                  <div className="h-full w-full bg-gradient-to-r from-emerald-400/60 via-accent/60 to-amber-300/70 animate-pulse" />
-                </div>
+                <span className="body-md font-medium tracking-tighter text-accent">{globalStats.avgComp}%</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-small bg-action-light dark:bg-action-dark px-small py-nano rounded-full border border-border-color">
             <Search size={14} className="text-tertiary" />
-            <input 
+            <input
               className="bg-transparent border-none outline-none body-md !text-[13px] w-24 sm:w-32"
-              placeholder="Fuzzy Search..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-tertiary hover:text-primary">
+                <X size={12} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -270,57 +231,56 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
         {priorityNodes.length > 0 && (
           <section className="space-y-small">
             <div className="flex items-center gap-small text-accent">
-              <Star size={16} fill="currentColor" />
-              <h3 className="caption-sm font-bold uppercase tracking-wider">Priority Focus</h3>
+              <Star size={14} fill="currentColor" />
+              <h3 className="caption-sm font-medium tracking-tighter text-accent" style={{ textTransform: 'none', letterSpacing: '-0.01em' }}>Priority Focus</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-small">
+            <div className="space-y-nano">
               {priorityNodes.map(node => (
-                <div 
+                <motion.div
                   key={`priority-${node.id}`}
-                  className="surface-card p-small flex items-center justify-between border-l-2 border-accent hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
-                  onClick={() => {
-                    setSelectedNodeId(node.id);
-                    onSelectNode(node.id);
-                  }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="surface-card flex items-center justify-between border-l-2 border-accent cursor-pointer hover:brightness-105"
+                  onClick={() => { setSelectedNodeId(node.id); onSelectNode(node.id); }}
                 >
                   <div className="flex flex-col min-w-0">
-                    <span className="body-md font-bold text-primary truncate">{node.title}</span>
-                    <span className="caption-sm text-tertiary">{nodeCompletions[node.id]}% Complete</span>
+                    <span className="body-md font-medium tracking-tighter text-primary truncate">{node.title}</span>
+                    <span className="caption-sm text-tertiary" style={{ textTransform: 'none' }}>{nodeCompletions[node.id]}% complete</span>
                   </div>
-                  <button 
+                  <button
                     onClick={(e) => { e.stopPropagation(); onStartFocus(node.id); }}
                     className="p-small bg-accent/10 text-accent rounded-full hover:bg-accent/20 transition-colors"
                   >
                     <Play size={14} fill="currentColor" />
                   </button>
-                </div>
+                </motion.div>
               ))}
             </div>
           </section>
         )}
 
-        {/* Main Syllabus Tree */}
+        {/* Neural Map */}
         <section className="space-y-medium">
           <div className="flex items-center justify-between">
-            <h3 className="caption-sm font-bold text-tertiary uppercase tracking-wider">Live Navigation Map</h3>
-            <button 
+            <h3 className="caption-sm text-tertiary" style={{ letterSpacing: '0.05em' }}>Neural Map</h3>
+            <button
               onClick={() => addNode(null)}
-              className="flex items-center gap-small text-xs font-bold text-accent hover:opacity-80 transition-opacity"
+              className="flex items-center gap-small text-xs font-medium text-accent hover:opacity-80 transition-opacity"
             >
               <Plus size={14} />
               Add Subject
             </button>
           </div>
 
-          <div className="space-y-nano">
+          <div className="space-y-[2px]">
             {rootNodes.length === 0 ? (
               <div className="surface-card p-large text-center border-dashed border-2 border-border-color">
-                <BookOpen size={48} className="mx-auto mb-small text-tertiary opacity-20" />
-                <p className="body-md text-tertiary">The path is clear. Add your first subject to begin.</p>
+                <BookOpen size={40} className="mx-auto mb-small text-tertiary opacity-20" />
+                <p className="body-md text-tertiary">The map is empty. Add your first subject.</p>
               </div>
             ) : (
-              rootNodes.map(node => (
-                <NodeItem 
+              rootNodes.map((node, idx) => (
+                <NeuralNode
                   key={node.id}
                   node={node}
                   nodes={nodes}
@@ -328,10 +288,7 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
                   toggleExpand={toggleExpand}
                   nodeCompletions={nodeCompletions}
                   onStartFocus={onStartFocus}
-                  onSelectNode={(id) => {
-                    setSelectedNodeId(id);
-                    onSelectNode(id);
-                  }}
+                  onSelectNode={(id) => { setSelectedNodeId(id); onSelectNode(id); setActiveSubjectId(id); }}
                   onRecall={onRecall}
                   updateNodes={updateNodes}
                   togglePriority={togglePriority}
@@ -341,6 +298,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
                   setEditingNodeId={setEditingNodeId}
                   searchQuery={searchQuery}
                   addNode={addNode}
+                  activeSubjectId={activeSubjectId}
+                  isLast={idx === rootNodes.length - 1}
                 />
               ))
             )}
@@ -352,8 +311,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       <div className="w-full md:w-80 shrink-0">
         <div className="sticky top-[var(--space-medium)] space-y-medium">
           {selectedNodeId && nodes[selectedNodeId] ? (
-            <NodePanel 
-              node={nodes[selectedNodeId]} 
+            <NodePanel
+              node={nodes[selectedNodeId]}
               onAddNote={(text, details) => addNote(selectedNodeId, text, details)}
               onDeleteNote={(noteId) => deleteNote(selectedNodeId, noteId)}
               onStartFocus={() => onStartFocus(selectedNodeId)}
@@ -363,8 +322,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
             />
           ) : (
             <div className="surface-card p-large text-center flex flex-col items-center justify-center h-64 border border-dashed border-border-color">
-              <BookOpen size={48} className="mb-[var(--space-v-small)] text-tertiary opacity-20" />
-              <p className="body-md text-tertiary">Select a topic to view details</p>
+              <BookOpen size={36} className="mb-[var(--space-v-small)] text-tertiary opacity-20" />
+              <p className="body-md text-tertiary">Select a node to view details</p>
             </div>
           )}
         </div>
@@ -373,7 +332,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   );
 }
 
-interface NodeItemProps {
+interface NeuralNodeProps {
+  key?: React.Key;
   node: StudyNode;
   nodes: Record<string, StudyNode>;
   expandedIds: Set<string>;
@@ -390,16 +350,17 @@ interface NodeItemProps {
   setEditingNodeId: (id: string | null) => void;
   searchQuery: string;
   addNode: (parentId: string | null) => void;
+  activeSubjectId: string | null;
   level?: number;
-  key?: any;
+  isLast?: boolean;
 }
 
-function NodeItem({ 
-  node, nodes, expandedIds, toggleExpand, nodeCompletions, 
-  onStartFocus, onSelectNode, onRecall, updateNodes, togglePriority, 
+function NeuralNode({
+  node, nodes, expandedIds, toggleExpand, nodeCompletions,
+  onStartFocus, onSelectNode, onRecall, updateNodes, togglePriority,
   updateNodeStatus, deleteNode, editingNodeId, setEditingNodeId,
-  searchQuery, addNode, level = 0 
-}: NodeItemProps) {
+  searchQuery, addNode, activeSubjectId, level = 0, isLast = false
+}: NeuralNodeProps) {
   const children = useMemo(() => {
     return Object.values(nodes)
       .filter(n => n.parentId === node.id)
@@ -408,131 +369,180 @@ function NodeItem({
 
   const isExpanded = expandedIds.has(node.id);
   const completion = nodeCompletions[node.id] || 0;
-  
+  const isElite = completion === 100;
+
   const matchesSearch = searchQuery === '' || node.title.toLowerCase().includes(searchQuery.toLowerCase());
   const hasMatchingChild = useMemo(() => {
     const check = (id: string): boolean => {
       const n = nodes[id];
+      if (!n) return false;
       if (n.title.toLowerCase().includes(searchQuery.toLowerCase())) return true;
-      const childs = Object.values(nodes).filter(c => c.parentId === id);
-      return childs.some(c => check(c.id));
+      return Object.values(nodes).filter(c => c.parentId === id).some(c => check(c.id));
     };
     return searchQuery !== '' && check(node.id);
   }, [nodes, node.id, searchQuery]);
 
   const isDimmed = searchQuery !== '' && !matchesSearch && !hasMatchingChild;
+  // Progressive disclosure: dim inactive subjects at root level
+  const isInactive = level === 0 && activeSubjectId !== null && activeSubjectId !== node.id && searchQuery === '';
+
+  const statusColor = node.status === 'done' ? '#34C759' : node.status === 'in-progress' ? '#FF9F0A' : 'var(--text-tertiary)';
 
   return (
-    <div className={cn("transition-opacity duration-300", isDimmed ? "opacity-20" : "opacity-100")}>
-      <div 
+    <motion.div
+      layout
+      className={cn(
+        "relative transition-opacity duration-500",
+        isDimmed ? "opacity-20" : isInactive ? "opacity-40" : "opacity-100"
+      )}
+    >
+      {/* Neural connector line (vertical) for children */}
+      {level > 0 && (
+        <div className="absolute left-[-17px] top-0 bottom-0 w-[1px] neural-line pointer-events-none" />
+      )}
+
+      {/* Node Card */}
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          "group relative flex flex-col p-small rounded-xl transition-all cursor-pointer border border-transparent",
-          isExpanded ? "bg-black/[0.02] dark:bg-white/[0.02]" : "hover:bg-black/[0.01] dark:hover:bg-white/[0.01]",
-          completion === 100 && level === 0 && "border-amber-300/60 shadow-[0_0_25px_rgba(253,224,71,0.25)]"
+          "group relative flex flex-col rounded-xl cursor-pointer border",
+          "transition-all duration-500",
+          level === 0 ? "p-small mb-[2px]" : "p-[10px] mb-[2px]",
+          isElite && "elite-node",
+          !isElite && "border-transparent",
+          isExpanded
+            ? "bg-black/[0.03] dark:bg-white/[0.03]"
+            : "hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
         )}
-        onClick={() => toggleExpand(node.id)}
+        onClick={() => {
+          toggleExpand(node.id);
+          onSelectNode(node.id);
+        }}
+        style={isElite ? {} : {}}
       >
         <div className="flex items-center gap-small">
-          {/* Status Dot (Traffic Light) */}
-          <div 
-            className={cn(
-              "w-2.5 h-2.5 rounded-full shrink-0 transition-colors",
-              node.status === 'done' ? "bg-success" : 
-              node.status === 'in-progress' ? "bg-warning" : 
-              "bg-tertiary/30"
-            )} 
+          {/* Glowing status dot */}
+          <div
+            className="w-2 h-2 rounded-full shrink-0 transition-all duration-500"
+            style={{
+              backgroundColor: statusColor,
+              boxShadow: node.status === 'done'
+                ? '0 0 6px rgba(52,199,89,0.6)'
+                : node.status === 'in-progress'
+                ? '0 0 6px rgba(255,159,10,0.6)'
+                : 'none'
+            }}
           />
 
-          {/* Title & Progress */}
+          {/* Title + Completion */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-small">
               {editingNodeId === node.id ? (
                 <input
                   autoFocus
-                  className="flex-1 bg-transparent border-none outline-none body-md font-bold text-primary"
+                  className="flex-1 bg-transparent border-none outline-none body-md font-medium tracking-tighter text-primary"
                   defaultValue={node.title}
                   onClick={(e) => e.stopPropagation()}
                   onBlur={(e) => {
-                    const title = e.target.value;
-                    updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title } }));
+                    updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title: e.target.value } }));
                     setEditingNodeId(null);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      const title = e.currentTarget.value;
-                      updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title } }));
+                      updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title: e.currentTarget.value } }));
                       setEditingNodeId(null);
                     }
                   }}
                 />
               ) : (
                 <span className={cn(
-                  "body-md truncate",
-                  level === 0 ? "font-bold text-primary text-[16px]" : "font-medium text-secondary text-[14px]"
+                  "truncate tracking-tighter font-medium",
+                  level === 0 ? "text-[16px] text-primary" : "text-[14px] text-secondary"
                 )}>
                   {node.title}
+                  {isElite && (
+                    <span className="ml-1 text-[10px]" style={{ color: 'rgba(253,196,45,0.9)' }}>★</span>
+                  )}
                 </span>
               )}
-              
-              <div className="flex items-center gap-nano shrink-0">
-                {node.notes.length > 0 && (
-                  <div className="flex items-center gap-nano px-small py-[2px] bg-accent/10 text-accent rounded-full text-[10px] font-bold">
-                    <span>{node.notes.length}</span>
-                    <Zap size={10} fill="currentColor" />
-                  </div>
-                )}
-                <span className="caption-sm text-tertiary font-bold">{completion}%</span>
-                <button 
+
+              <div className="flex items-center gap-[6px] shrink-0">
+                {/* Velocity sparkline */}
+                <VelocitySparkline value={completion} />
+                <span className={cn(
+                  "text-[11px] font-medium tabular-nums",
+                  isElite ? "text-yellow-400" : "text-tertiary"
+                )}>{completion}%</span>
+                <button
                   onClick={(e) => { e.stopPropagation(); togglePriority(node.id); }}
-                  className={cn("p-nano transition-colors", node.isPriority ? "text-accent" : "text-tertiary/40 hover:text-accent")}
+                  className={cn("p-nano transition-colors", node.isPriority ? "text-accent" : "text-tertiary/30 hover:text-accent")}
                 >
-                  <Star size={14} fill={node.isPriority ? "currentColor" : "none"} />
+                  <Star size={12} fill={node.isPriority ? "currentColor" : "none"} />
                 </button>
               </div>
             </div>
 
-            {/* Mini Progress Bar */}
-            <div className="mt-nano w-full h-[4px] bg-black/[0.05] dark:bg-white/[0.05] rounded-full overflow-hidden">
-              <motion.div 
+            {/* Progress bar */}
+            <div className="mt-[5px] w-full h-[3px] rounded-full overflow-hidden"
+              style={{ background: 'var(--border-color)' }}>
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${completion}%` }}
-                className="h-full bg-accent"
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                className="h-full rounded-full"
+                style={{
+                  background: isElite
+                    ? 'linear-gradient(90deg, #F59E0B, #FDE047)'
+                    : 'var(--color-accent)'
+                }}
               />
             </div>
           </div>
 
-          <div className="text-tertiary group-hover:text-primary transition-colors">
-            {children.length > 0 && (isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
-          </div>
+          {children.length > 0 && (
+            <motion.div
+              animate={{ rotate: isExpanded ? 90 : 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="text-tertiary/40"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 4l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </motion.div>
+          )}
         </div>
 
-        {/* Quick-Action Surface (Control Strip) */}
+        {/* Control strip — appears on expand */}
         <AnimatePresence>
           {isExpanded && (
-            <motion.div 
+            <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
               className="overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-small pt-small pb-nano">
-                <button 
+              <div className="flex items-center gap-small pt-small pb-[2px]">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   onClick={() => onStartFocus(node.id)}
-                  className="flex-1 flex items-center justify-center gap-nano py-nano bg-accent text-white rounded-lg text-[12px] font-bold hover:opacity-90 transition-opacity"
+                  className="flex-1 flex items-center justify-center gap-nano py-nano bg-accent text-white rounded-lg text-[11px] font-medium hover:opacity-90"
                 >
-                  <Play size={12} fill="currentColor" />
+                  <Play size={11} fill="currentColor" />
                   Focus
-                </button>
-                <button 
-                  onClick={() => onSelectNode(node.id)}
-                  className="flex-1 flex items-center justify-center gap-nano py-nano bg-action-light dark:bg-action-dark text-primary rounded-lg text-[12px] font-bold border border-border-color hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  onClick={() => onRecall(node.id)}
+                  className="flex-1 flex items-center justify-center gap-nano py-nano rounded-lg text-[11px] font-medium border border-border-color bg-action-light dark:bg-action-dark text-primary"
                 >
-                  <Zap size={12} />
+                  <Zap size={11} />
                   Recall
-                </button>
+                </motion.button>
                 <div className="flex items-center gap-nano bg-action-light dark:bg-action-dark p-nano rounded-lg border border-border-color">
                   {(['not-started', 'in-progress', 'done'] as NodeStatus[]).map(s => (
                     <button
@@ -543,32 +553,34 @@ function NodeItem({
                         node.status === s ? "bg-white dark:bg-black shadow-sm text-accent" : "text-tertiary hover:text-primary"
                       )}
                     >
-                      {s === 'done' ? <CheckCircle2 size={12} /> : s === 'in-progress' ? <Clock size={12} /> : <Target size={12} />}
+                      {s === 'done' ? <CheckCircle2 size={11} /> : s === 'in-progress' ? <Clock size={11} /> : <Target size={11} />}
                     </button>
                   ))}
                 </div>
                 <div className="flex items-center gap-nano">
-                  <button onClick={() => addNode(node.id)} className="p-nano text-tertiary hover:text-primary"><Plus size={14} /></button>
-                  <button onClick={() => setEditingNodeId(node.id)} className="p-nano text-tertiary hover:text-primary"><Edit3 size={14} /></button>
-                  <button onClick={() => deleteNode(node.id)} className="p-nano text-tertiary hover:text-error"><Trash2 size={14} /></button>
+                  <button onClick={() => addNode(node.id)} className="p-nano text-tertiary hover:text-primary"><Plus size={13} /></button>
+                  <button onClick={() => setEditingNodeId(node.id)} className="p-nano text-tertiary hover:text-primary"><Edit3 size={13} /></button>
+                  <button onClick={() => deleteNode(node.id)} className="p-nano text-tertiary hover:text-error"><Trash2 size={13} /></button>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      {/* Nested Levels */}
+      {/* Children: nested with vertical connector */}
       <AnimatePresence>
         {isExpanded && children.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="ml-[var(--space-medium)] border-l border-accent/10 pl-nano"
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="ml-[22px] pl-[12px] relative overflow-hidden"
+            style={{ borderLeft: '1px solid rgba(74,144,226,0.12)' }}
           >
-            {children.map(child => (
-              <NodeItem 
+            {children.map((child, idx) => (
+              <NeuralNode
                 key={child.id}
                 node={child}
                 nodes={nodes}
@@ -586,285 +598,140 @@ function NodeItem({
                 setEditingNodeId={setEditingNodeId}
                 searchQuery={searchQuery}
                 addNode={addNode}
+                activeSubjectId={activeSubjectId}
                 level={level + 1}
+                isLast={idx === children.length - 1}
               />
             ))}
           </motion.div>
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ─────────── NodePanel ─────────── */
+interface NodePanelProps {
+  node: StudyNode;
+  onAddNote: (text: string, details?: string) => void;
+  onDeleteNote: (noteId: string) => void;
+  onStartFocus: () => void;
+  onRecall: () => void;
+  onAddAttachment: (file: File) => void;
+  onDeleteAttachment: (id: string) => void;
+}
+
+function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAddAttachment, onDeleteAttachment }: NodePanelProps) {
+  const [noteText, setNoteText] = useState('');
+  const [noteDetails, setNoteDetails] = useState('');
+  const [showAttach, setShowAttach] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  return (
+    <div className="surface-card space-y-medium">
+      {/* Header */}
+      <div className="space-y-nano">
+        <p className="text-[18px] font-medium tracking-tighter text-primary leading-tight">{node.title}</p>
+        <div className="flex gap-small">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            onClick={onStartFocus}
+            className="flex-1 flex items-center justify-center gap-nano primary-button !rounded-xl !h-9 text-[12px]"
+          >
+            <Play size={13} fill="currentColor" /> Focus
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            onClick={onRecall}
+            className="flex-1 flex items-center justify-center gap-nano secondary-button !rounded-xl !h-9 text-[12px]"
+          >
+            <Zap size={13} /> Recall
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-small">
+        <p className="caption-sm text-tertiary">Notes</p>
+        <div className="space-y-nano max-h-48 overflow-y-auto pr-1">
+          {node.notes.length === 0 && (
+            <p className="text-[12px] text-tertiary italic">No notes yet.</p>
+          )}
+          {node.notes.map(note => (
+            <div key={note.id} className="group flex items-start gap-nano bg-action-light dark:bg-action-dark rounded-lg px-small py-nano">
+              <p className="flex-1 text-[12px] text-primary">{note.text}</p>
+              <button
+                onClick={() => onDeleteNote(note.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-tertiary hover:text-error"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-nano">
+          <input
+            className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[12px] text-primary border border-border-color outline-none focus:border-accent/50 transition-colors"
+            placeholder="Add a note..."
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && noteText.trim()) {
+                onAddNote(noteText, noteDetails);
+                setNoteText('');
+                setNoteDetails('');
+              }
+            }}
+          />
+          {noteText && (
+            <input
+              className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[11px] text-secondary border border-border-color outline-none"
+              placeholder="Details (optional)..."
+              value={noteDetails}
+              onChange={(e) => setNoteDetails(e.target.value)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Attachments */}
+      <div className="space-y-nano">
+        <div className="flex items-center justify-between">
+          <p className="caption-sm text-tertiary">Files</p>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="text-[11px] text-accent hover:opacity-80 flex items-center gap-nano"
+          >
+            <Plus size={11} /> Attach
+          </button>
+          <input ref={fileRef} type="file" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onAddAttachment(f);
+            e.target.value = '';
+          }} />
+        </div>
+        {(node.attachments || []).map(a => (
+          <div key={a.id} className="flex items-center gap-nano bg-action-light dark:bg-action-dark rounded-lg px-small py-nano">
+            <span className="flex-1 text-[11px] text-primary truncate">{a.name}</span>
+            <button onClick={() => onDeleteAttachment(a.id)} className="text-tertiary hover:text-error">
+              <X size={11} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Study Methods */}
+      <div className="space-y-nano pt-nano border-t border-border-color">
+        <p className="caption-sm text-tertiary">Study Methods</p>
+        <div className="flex gap-nano flex-wrap">
+          {['Leitner', 'Feynman', 'SQ3R'].map(method => (
+            <span key={method} className="text-[10px] px-[8px] py-[3px] rounded-full border border-border-color text-secondary font-medium">{method}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAddAttachment, onDeleteAttachment }: { 
-  node: StudyNode, 
-  onAddNote: (text: string, details?: string) => void,
-  onDeleteNote: (id: string) => void,
-  onStartFocus: () => void,
-  onRecall: () => void,
-  onAddAttachment: (file: File) => void,
-  onDeleteAttachment: (id: string) => void
-}) {
-  const [noteInput, setNoteInput] = useState('');
-  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
-  const [isVaultExpanded, setIsVaultExpanded] = useState(false);
-  const [viewingFile, setViewingFile] = useState<{ id: string, name: string, type: string } | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  const attachments = node.attachments || [];
-  const pdfCount = attachments.filter(a => a.type === 'application/pdf').length;
-  const imgCount = attachments.filter(a => a.type.startsWith('image/')).length;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onAddAttachment(file);
-      setFeedback('File added');
-      setTimeout(() => setFeedback(null), 3000);
-      e.target.value = ''; // Reset input
-    }
-  };
-
-  return (
-    <motion.div 
-      key={node.id}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex flex-col h-full bg-surface-card border-l border-border-color overflow-hidden"
-    >
-      {/* [1] The Topic Control Center (Header & Actions) */}
-      <div className="sticky top-0 z-10 bg-surface-card/80 backdrop-blur-md border-b border-border-color p-large space-y-medium">
-        <div className="flex items-center gap-small">
-          <div className={cn(
-            "w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]",
-            node.status === 'done' ? "bg-success shadow-success/40" : 
-            node.status === 'in-progress' ? "bg-warning shadow-warning/40" : 
-            "bg-tertiary shadow-tertiary/40"
-          )} />
-          <h2 className="text-[16px] font-bold text-primary truncate flex-1">{node.title}</h2>
-          <button className="p-nano text-tertiary hover:text-primary transition-colors">
-            <MoreHorizontal size={18} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-small">
-          <button 
-            onClick={onStartFocus}
-            className="flex-1 py-small bg-accent text-white rounded-lg font-bold flex items-center justify-center gap-small hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-accent/10"
-          >
-            <Play size={14} fill="currentColor" />
-            <span className="text-[12px] uppercase tracking-wider">Focus</span>
-          </button>
-          <button 
-            onClick={() => {
-              const input = document.getElementById('note-input');
-              input?.focus();
-            }}
-            className="flex-1 py-small bg-action-light dark:bg-action-dark text-primary rounded-lg font-bold flex items-center justify-center gap-small hover:bg-border-color transition-all active:scale-95 border border-border-color"
-          >
-            <Plus size={14} />
-            <span className="text-[12px] uppercase tracking-wider">Note</span>
-          </button>
-          <button 
-            onClick={onRecall}
-            className="flex-1 py-small bg-action-light dark:bg-action-dark text-primary rounded-lg font-bold flex items-center justify-center gap-small hover:bg-border-color transition-all active:scale-95 border border-border-color"
-          >
-            <Brain size={14} />
-            <span className="text-[12px] uppercase tracking-wider">Recall</span>
-          </button>
-        </div>
-      </div>
-
-      {/* [2] The Concept Stream (Note Architecture) */}
-      <div className="flex-1 overflow-y-auto p-large space-y-large custom-scrollbar">
-        <div className="space-y-medium">
-          <div className="flex items-center justify-between">
-            <h4 className="text-[11px] font-bold text-tertiary uppercase tracking-[0.2em]">Concept Stream</h4>
-            <span className="text-[11px] font-medium text-tertiary opacity-60">{node.notes.length} Atomic Units</span>
-          </div>
-
-          <div className="space-y-small">
-            {node.notes.length === 0 ? (
-              <div className="py-xlarge text-center space-y-small opacity-40">
-                <Brain size={32} className="mx-auto text-tertiary" />
-                <p className="text-[13px] italic text-tertiary">No concepts captured yet.</p>
-              </div>
-            ) : (
-              node.notes.map(note => (
-                <div 
-                  key={note.id} 
-                  className="group cursor-pointer"
-                  onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}
-                >
-                  <div className="flex items-start gap-medium py-nano">
-                    <div className="mt-2 w-1 h-1 rounded-full bg-accent shrink-0" />
-                    <span className={cn(
-                      "flex-1 text-[14px] leading-relaxed transition-colors",
-                      expandedNoteId === note.id ? "text-primary font-medium" : "text-secondary group-hover:text-primary"
-                    )}>
-                      {note.text}
-                    </span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-                      className="opacity-0 group-hover:opacity-100 p-nano text-tertiary hover:text-error transition-all"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  
-                  <AnimatePresence>
-                    {expandedNoteId === note.id && note.details && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden ml-medium"
-                      >
-                        <div className="pt-nano pb-small text-[13px] text-tertiary leading-relaxed border-l-2 border-accent/10 pl-medium">
-                          {note.details}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Note Input */}
-        <div className="pt-medium border-t border-border-color/50">
-          <div className="relative">
-            <input
-              id="note-input"
-              className="w-full bg-action-light dark:bg-action-dark rounded-xl pl-medium pr-12 py-medium text-[14px] outline-none focus:ring-2 ring-accent/20 text-primary border border-border-color placeholder:text-tertiary/50"
-              placeholder="Capture a one-line concept..."
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && noteInput.trim()) {
-                  onAddNote(noteInput);
-                  setNoteInput('');
-                }
-              }}
-            />
-            <button 
-              onClick={() => {
-                if (noteInput.trim()) {
-                  onAddNote(noteInput);
-                  setNoteInput('');
-                }
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-small text-accent hover:opacity-80 transition-opacity"
-            >
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* [3] The "Vault" (Asset Management) */}
-      <div className="bg-action-light/50 dark:bg-action-dark/50 border-t border-border-color">
-        <button 
-          onClick={() => setIsVaultExpanded(!isVaultExpanded)}
-          className="w-full px-large py-medium flex items-center justify-between hover:bg-border-color/20 transition-colors"
-        >
-          <div className="flex items-center gap-medium text-tertiary">
-            <div className="flex items-center gap-nano">
-              <FileText size={14} />
-              <span className="text-[11px] font-bold uppercase tracking-wider">{pdfCount} PDFs</span>
-            </div>
-            <div className="w-[1px] h-3 bg-border-color" />
-            <div className="flex items-center gap-nano">
-              <ImageIcon size={14} />
-              <span className="text-[11px] font-bold uppercase tracking-wider">{imgCount} Images</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-small text-tertiary">
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Reference Vault</span>
-            {isVaultExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </div>
-        </button>
-
-        <AnimatePresence>
-          {isVaultExpanded && (
-            <motion.div 
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="p-large pt-0 space-y-medium">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-small">
-                    <span className="text-[10px] font-bold text-tertiary uppercase tracking-widest">Attachments</span>
-                    <AnimatePresence>
-                      {feedback && (
-                        <motion.span 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="text-[10px] font-bold text-success uppercase tracking-widest"
-                        >
-                          • {feedback}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  <label className="flex items-center gap-nano text-[10px] font-bold text-accent hover:opacity-80 transition-opacity cursor-pointer">
-                    <Plus size={12} />
-                    Add File
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleFileChange}
-                      accept="image/*,application/pdf"
-                    />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 gap-nano">
-                  {attachments.map((file) => (
-                    <motion.div 
-                      key={file.id} 
-                      layoutId={`media-${file.id}`}
-                      className="group flex items-center gap-small p-small bg-border-color/20 rounded-lg border border-border-color/50 hover:bg-border-color/40 transition-colors cursor-pointer"
-                      onClick={() => setViewingFile(file)}
-                    >
-                      <div className="w-8 h-8 rounded-md bg-background flex items-center justify-center text-tertiary">
-                        {file.type === 'application/pdf' ? <FileText size={16} /> : <ImageIcon size={16} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-medium text-primary truncate">{file.name}</p>
-                        <p className="text-[10px] text-tertiary">{(file.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); onDeleteAttachment(file.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-nano text-tertiary hover:text-error transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
-                  {attachments.length === 0 && (
-                    <div className="py-large text-center text-[12px] text-tertiary italic opacity-60 border border-dashed border-border-color rounded-lg">
-                      No assets attached to this topic.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {viewingFile && (
-        <MediaOverlay 
-          file={viewingFile} 
-          layoutId={`media-${viewingFile.id}`}
-          onClose={() => setViewingFile(null)} 
-        />
-      )}
-    </motion.div>
-  );
-}

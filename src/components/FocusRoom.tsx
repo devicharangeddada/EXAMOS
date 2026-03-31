@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyNode, AppSettings, StudySession } from '../types';
-import { Play, Pause, Volume2, VolumeX, Flame, Wind, Droplets, Coffee, Radio, ChevronLeft, X, AlertCircle } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Wind, Droplets, Coffee, Radio, ChevronLeft, X, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { focusAudio, SoundPresetId, SOUND_PRESETS } from '../services/FocusAudioContext';
 import { useHaptics } from '../lib/haptics';
@@ -13,6 +13,121 @@ interface FocusRoomProps {
   settings: AppSettings;
   onComplete: (session: StudySession) => void;
   onCancel: () => void;
+}
+
+/** Streak Flame — grows in intensity as timer progresses */
+function StreakFlame({ seconds, isActive }: { seconds: number; isActive: boolean }) {
+  const intensity = Math.min(1, seconds / (25 * 60)); // 0→1 over 25 min
+  const flameH = 24 + intensity * 28; // 24px → 52px tall
+  const opacity = isActive ? (0.5 + intensity * 0.5) : 0.25;
+  const hue = Math.round(30 - intensity * 20); // orange → red-orange
+
+  return (
+    <motion.div
+      animate={isActive ? { y: [0, -2, 1, -1, 0] } : {}}
+      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+      className="flex flex-col items-center gap-[2px]"
+    >
+      <svg
+        width="24"
+        height={flameH}
+        viewBox={`0 0 24 ${flameH}`}
+        className="flame-icon"
+        style={{ opacity, transition: 'opacity 1s ease, height 1s ease' }}
+      >
+        <defs>
+          <radialGradient id="flameGrad" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stopColor={`hsl(${hue},100%,65%)`} />
+            <stop offset="60%" stopColor={`hsl(${hue + 10},100%,50%)`} />
+            <stop offset="100%" stopColor={`hsl(${hue + 20},90%,30%)`} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <path
+          d={`M12,${flameH} C4,${flameH * 0.85} 2,${flameH * 0.6} 6,${flameH * 0.4} C4,${flameH * 0.25} 8,${flameH * 0.1} 10,0 C12,${flameH * 0.15} 14,${flameH * 0.08} 16,${flameH * 0.3} C20,${flameH * 0.12} 22,${flameH * 0.4} 20,${flameH * 0.6} C22,${flameH * 0.8} 20,${flameH * 0.9} 12,${flameH}`}
+          fill="url(#flameGrad)"
+        />
+      </svg>
+      {seconds > 0 && (
+        <span className="text-[9px] font-medium tabular-nums" style={{ color: `hsl(${hue},90%,60%)`, opacity }}>
+          {Math.floor(seconds / 60)}m
+        </span>
+      )}
+    </motion.div>
+  );
+}
+
+/** Liquid Volume Pillar: deep blue → vibrant violet gradient */
+function LiquidVolumePillar({
+  volume,
+  onVolumeChange,
+}: {
+  volume: number;
+  onVolumeChange: (v: number) => void;
+}) {
+  const { pulse } = useHaptics();
+  const pillarRef = useRef<HTMLDivElement>(null);
+
+  const handleInteraction = (clientY: number) => {
+    const rect = pillarRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const ratio = 1 - (clientY - rect.top) / rect.height;
+    const clamped = Math.max(0, Math.min(1, ratio));
+    const next = Math.round(clamped * 100);
+    if ((next === 0 || next === 100) && next !== volume) pulse('heavy');
+    onVolumeChange(next);
+  };
+
+  const gradientPos = volume / 100; // 0=blue, 1=violet
+  const r1 = Math.round(29 + gradientPos * 95);  // 29→124
+  const g1 = Math.round(78 - gradientPos * 19);   // 78→59
+  const b1 = Math.round(216 - gradientPos * 63);  // 216→153
+  const r2 = Math.round(91 + gradientPos * 33);
+  const g2 = Math.round(33 - gradientPos * 10);
+  const b2 = Math.round(182 + gradientPos * 37);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <VolumeX size={13} className="text-tertiary" />
+      <div
+        ref={pillarRef}
+        className="h-36 w-5 rounded-full relative overflow-hidden cursor-pointer select-none"
+        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+        onMouseDown={(e) => {
+          handleInteraction(e.clientY);
+          const move = (ev: MouseEvent) => handleInteraction(ev.clientY);
+          const up = () => {
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+          };
+          window.addEventListener('mousemove', move);
+          window.addEventListener('mouseup', up);
+        }}
+        onTouchStart={(e) => handleInteraction(e.touches[0].clientY)}
+        onTouchMove={(e) => handleInteraction(e.touches[0].clientY)}
+      >
+        <motion.div
+          animate={{ height: `${volume}%` }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="absolute bottom-0 left-0 right-0 rounded-full"
+          style={{
+            background: `linear-gradient(180deg, rgb(${r1},${g1},${b1}), rgb(${r2},${g2},${b2}))`
+          }}
+        />
+        {/* Shimmer line at top of fill */}
+        {volume > 5 && (
+          <motion.div
+            animate={{ height: `${volume}%` }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="absolute bottom-0 left-0 right-0 flex items-start justify-center"
+          >
+            <div className="w-full h-[1px] rounded-full"
+              style={{ background: 'rgba(255,255,255,0.35)', marginTop: -1 }} />
+          </motion.div>
+        )}
+      </div>
+      <Volume2 size={13} className="text-tertiary" />
+    </div>
+  );
 }
 
 export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, onCancel }: FocusRoomProps) {
@@ -27,26 +142,19 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const [completed, setCompleted] = useState(true);
   const [longPressActive, setLongPressActive] = useState(false);
   const [longPressProgress, setLongPressProgress] = useState(0);
-  
+
   const longPressTimer = useRef<any>(null);
   const node = activeNodeId ? nodes[activeNodeId] : null;
   const { pulse } = useHaptics();
 
-  // Logic #2: Radial Glow Intensity (Starts at 15%, +1% every 5 mins)
-  const glowIntensity = useMemo(() => 15 + Math.floor(seconds / 300), [seconds]);
+  const glowIntensity = useMemo(() => 12 + Math.floor(seconds / 300), [seconds]);
 
-  // Timer logic
   useEffect(() => {
     let interval: any;
-    if (isActive) {
-      interval = setInterval(() => {
-        setSeconds(s => s + 1);
-      }, 1000);
-    }
+    if (isActive) { interval = setInterval(() => setSeconds(s => s + 1), 1000); }
     return () => clearInterval(interval);
   }, [isActive]);
 
-  // Audio Manager
   useEffect(() => {
     if (isActive && isSoundOn) {
       focusAudio.play(selectedSound).catch(() => setIsAudioSuspended(true));
@@ -55,15 +163,13 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
     }
   }, [isActive, isSoundOn, selectedSound]);
 
-  useEffect(() => {
-    focusAudio.setVolume(volume / 100);
-  }, [volume]);
+  useEffect(() => { focusAudio.setVolume(volume / 100); }, [volume]);
 
   const handleToggleActive = async () => {
     if (!isActive) {
-      // User Interaction Gatekeeper
       await focusAudio.initialize();
       setIsAudioSuspended(focusAudio.isSuspended());
+      pulse('light');
     }
     setIsActive(!isActive);
   };
@@ -71,9 +177,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const handleResumeAudio = async () => {
     await focusAudio.initialize();
     setIsAudioSuspended(focusAudio.isSuspended());
-    if (isActive && isSoundOn) {
-      focusAudio.play(selectedSound);
-    }
+    if (isActive && isSoundOn) focusAudio.play(selectedSound);
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -85,15 +189,12 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const handleLongPressStart = () => {
     setLongPressActive(true);
     setLongPressProgress(0);
-    let start = Date.now();
+    const start = Date.now();
     longPressTimer.current = setInterval(() => {
       const elapsed = Date.now() - start;
       const progress = Math.min((elapsed / 1000) * 100, 100);
       setLongPressProgress(progress);
-      if (progress >= 100) {
-        clearInterval(longPressTimer.current);
-        handleEnd();
-      }
+      if (progress >= 100) { clearInterval(longPressTimer.current); handleEnd(); }
     }, 16);
   };
 
@@ -103,82 +204,84 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
     if (longPressTimer.current) clearInterval(longPressTimer.current);
   };
 
-  const handleEnd = () => {
-    setIsActive(false);
-    setShowSummary(true);
-  };
+  const handleEnd = () => { setIsActive(false); setShowSummary(true); };
 
   const handleFinish = () => {
     if (!activeNodeId) return;
-    
-    // Update node metrics for Weakness Detection Algorithm
-    const difficultyMap = { easy: 1, medium: 2, hard: 3 };
-    
     onComplete({
       id: Math.random().toString(36).substring(7),
       nodeId: activeNodeId,
       startTime: Date.now() - seconds * 1000,
       duration: seconds,
       completed,
-      difficulty
+      difficulty,
     });
   };
 
-  // Progress Ring Calculations
-  const radius = 118; // 240px diameter - 3px stroke / 2 (approx)
+  const radius = 118;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(seconds / (25 * 60), 1); // Default 25 min session
+  const progress = Math.min(seconds / (25 * 60), 1);
   const strokeDashoffset = circumference - progress * circumference;
 
   if (showSummary) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center p-large z-[100] matte-grain bg-base-dark">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="surface-card p-large max-w-md w-full space-y-medium border border-border-color backdrop-blur-xl"
+      <div className="fixed inset-0 flex items-center justify-center p-large z-[100] matte-grain"
+        style={{ background: '#000000' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="rounded-[24px] p-large max-w-md w-full space-y-medium border"
+          style={{ background: '#0A0A0B', borderColor: '#1F1F22' }}
         >
           <div className="text-center space-y-nano">
-            <h2 className="text-[14px] font-medium text-secondary">How was your focus?</h2>
-            <p className="text-[44px] font-medium tracking-tighter text-accent tabular-nums leading-none">{formatTime(seconds)}</p>
+            <p className="text-[13px] font-medium" style={{ color: '#71717A' }}>Echoless — Session Complete</p>
+            <p className="text-[52px] font-medium tracking-tighter tabular-nums leading-none text-white">
+              {formatTime(seconds)}
+            </p>
           </div>
 
           <div className="space-y-medium">
             <div className="flex justify-center gap-medium">
               {(['easy', 'medium', 'hard'] as const).map(d => (
-                <button 
+                <motion.button
                   key={d}
+                  whileTap={{ scale: 0.93 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   onClick={() => setDifficulty(d)}
                   className={cn(
-                    "w-12 h-12 rounded-2xl border border-border-color flex items-center justify-center transition-all press-scale", 
-                    difficulty === d 
-                      ? "bg-success/10 border-success/40 text-success shadow-[0_0_20px_rgba(52,199,89,0.2)]" 
-                      : "bg-action-dark/50 text-tertiary"
+                    "w-12 h-12 rounded-2xl border flex items-center justify-center transition-all",
+                    difficulty === d
+                      ? "border-[#34C759]/40 text-[#34C759]"
+                      : "text-[#52525B]"
                   )}
+                  style={{
+                    background: difficulty === d ? 'rgba(52,199,89,0.08)' : '#0A0A0B',
+                    borderColor: difficulty === d ? undefined : '#1F1F22',
+                    boxShadow: difficulty === d ? '0 0 20px rgba(52,199,89,0.15)' : 'none'
+                  }}
                 >
-                  <span className="text-[10px] uppercase font-bold">{d[0]}</span>
-                </button>
+                  <span className="text-[10px] uppercase font-medium">{d[0]}</span>
+                </motion.button>
               ))}
             </div>
-            
+
             <div className="space-y-small">
-              <p className="caption-sm text-center text-tertiary">Did you complete your goal?</p>
+              <p className="text-[12px] text-center" style={{ color: '#52525B' }}>Did you complete your goal?</p>
               <div className="flex gap-small">
-                <button 
+                <button
                   onClick={() => setCompleted(true)}
-                  className={cn(
-                    "flex-1 h-10 rounded-xl border border-border-color transition-all press-scale text-xs font-medium", 
-                    completed ? "bg-success/20 border-success/40 text-success" : "bg-action-dark/50 text-tertiary"
-                  )}
+                  className={cn("flex-1 h-10 rounded-xl border transition-all text-xs font-medium",
+                    completed ? "border-[#34C759]/40 text-[#34C759]" : "text-[#52525B]")}
+                  style={{ background: completed ? 'rgba(52,199,89,0.08)' : '#0A0A0B', borderColor: completed ? undefined : '#1F1F22' }}
                 >
                   Goal Met
                 </button>
-                <button 
+                <button
                   onClick={() => setCompleted(false)}
-                  className={cn(
-                    "flex-1 h-10 rounded-xl border border-border-color transition-all press-scale text-xs font-medium", 
-                    !completed ? "bg-error/20 border-error/40 text-error" : "bg-action-dark/50 text-tertiary"
-                  )}
+                  className={cn("flex-1 h-10 rounded-xl border transition-all text-xs font-medium",
+                    !completed ? "border-[#FF453A]/40 text-[#FF453A]" : "text-[#52525B]")}
+                  style={{ background: !completed ? 'rgba(255,69,58,0.08)' : '#0A0A0B', borderColor: !completed ? undefined : '#1F1F22' }}
                 >
                   Incomplete
                 </button>
@@ -187,17 +290,19 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
           </div>
 
           <div className="flex flex-col gap-small">
-            <button 
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               onClick={handleFinish}
-              className="w-full bg-accent text-white h-12 rounded-xl font-medium shadow-lg shadow-accent/20 press-scale"
+              className="w-full h-12 rounded-xl font-medium text-white"
+              style={{ background: 'var(--color-accent)', boxShadow: '0 0 30px rgba(74,144,226,0.25)' }}
             >
               Log Session
-            </button>
-            <button 
-              onClick={onCancel}
-              className="w-full h-10 text-[11px] uppercase tracking-[0.2em] font-medium text-tertiary hover:text-primary transition-colors"
-            >
-              Don't Log Session
+            </motion.button>
+            <button onClick={onCancel}
+              className="w-full h-10 text-[11px] uppercase tracking-[0.2em] font-medium transition-colors"
+              style={{ color: '#3F3F46' }}>
+              Discard
             </button>
           </div>
         </motion.div>
@@ -206,30 +311,56 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   }
 
   return (
-    <div className={cn(
-      "fixed inset-0 flex flex-col items-center justify-center z-[100] overflow-hidden focus-breathing-bg matte-grain",
-    )}>
-      {/* Breathing Gradient Focal Point Animation */}
-      <motion.div
-        animate={{
-          "--focal-x": ["40%", "60%", "50%", "40%"],
-          "--focal-y": ["40%", "45%", "60%", "40%"],
-        } as any}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 pointer-events-none"
-      />
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center z-[100] overflow-hidden matte-grain"
+      style={{
+        background: '#000000',
+        backgroundImage: isActive
+          ? `radial-gradient(ellipse 60% 50% at 50% 50%, rgba(74,144,226,${(glowIntensity / 100) * 0.18}) 0%, transparent 70%)`
+          : 'none'
+      }}
+    >
+      {/* Breathing focal animation */}
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            animate={{
+              scale: [1, 1.08, 1, 1.06, 1],
+              opacity: [0.06, 0.14, 0.08, 0.12, 0.06]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute w-[400px] h-[400px] rounded-full pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle, rgba(74,144,226,1) 0%, transparent 70%)',
+              filter: 'blur(60px)'
+            }}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* UI Fade Layer */}
+      {/* Exit button */}
+      {!isActive && (
+        <button
+          onClick={onCancel}
+          className="absolute top-8 left-6 w-10 h-10 flex items-center justify-center rounded-full transition-colors"
+          style={{ background: 'rgba(255,255,255,0.04)', color: '#52525B' }}
+        >
+          <ChevronLeft size={20} />
+        </button>
+      )}
+
+      {/* Topic label */}
       <AnimatePresence>
         {!isActive && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute top-8 left-0 right-0 flex justify-center"
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="absolute top-10 left-0 right-0 flex justify-center"
           >
-            <p className="text-[14px] font-medium text-primary tracking-wide">
-              {node?.title || 'Deep Work Session'}
+            <p className="text-[14px] font-medium tracking-tighter" style={{ color: '#A1A1AA' }}>
+              {node?.title || 'Deep Work — imdvichrn'}
             </p>
           </motion.div>
         )}
@@ -242,230 +373,180 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl text-xs text-white flex items-center gap-3"
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full flex items-center gap-3"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              backdropFilter: 'blur(12px)'
+            }}
           >
-            <Radio size={14} className="opacity-70" />
-            <span className="font-medium">
+            <Radio size={13} style={{ color: '#52525B' }} />
+            <span className="text-[11px] font-medium" style={{ color: '#A1A1AA' }}>
               {SOUND_PRESETS.find(p => p.id === selectedSound)?.label || 'Ambient'}
             </span>
-            <div className="w-16 h-1 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-white/70"
-                style={{ width: `${volume}%` }}
-              />
+            <div className="w-12 h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full rounded-full" style={{ width: `${volume}%`, background: 'rgba(255,255,255,0.4)' }} />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Centerpiece (Timer & Ring) */}
-      <motion.div 
-        animate={{ 
-          scale: isActive ? 1.03 : 1,
-          y: isActive ? -20 : 0
-        }}
+      {/* Streak Flame + Timer centerpiece */}
+      <motion.div
+        animate={{ scale: isActive ? 1.02 : 1, y: isActive ? -16 : 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex items-center justify-center"
+        className="relative flex flex-col items-center justify-center"
       >
-        {/* Radial Glow */}
-        <motion.div 
-          animate={{ 
-            opacity: isActive ? glowIntensity / 100 : 0.05,
-            scale: isActive ? [1, 1.05, 1] : 1
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[300px] h-[300px] rounded-full bg-accent/20 blur-[80px] pointer-events-none"
-        />
+        {/* Streak Flame above timer */}
+        <div className="mb-4">
+          <StreakFlame seconds={seconds} isActive={isActive} />
+        </div>
 
-        {/* Progress Ring */}
-        <svg width="240" height="240" viewBox="0 0 240 240" className="absolute -rotate-90">
-          <circle
-            cx="120"
-            cy="120"
-            r="118"
-            fill="none"
-            stroke="var(--border-color)"
-            strokeWidth="3"
-            className="opacity-20"
-          />
-          <motion.circle
-            cx="120"
-            cy="120"
-            r="118"
-            fill="none"
-            stroke="var(--color-accent)"
-            strokeWidth="3"
-            strokeDasharray={circumference}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 1, ease: "linear" }}
-            strokeLinecap="round"
-          />
-        </svg>
+        {/* Progress ring */}
+        <div className="relative flex items-center justify-center">
+          <svg width="240" height="240" viewBox="0 0 240 240" className="absolute -rotate-90">
+            <circle cx="120" cy="120" r="118" fill="none"
+              stroke="rgba(255,255,255,0.04)" strokeWidth="1.5" />
+            <motion.circle
+              cx="120" cy="120" r="118" fill="none"
+              stroke="rgba(74,144,226,0.7)" strokeWidth="1.5"
+              strokeDasharray={circumference}
+              animate={{ strokeDashoffset }}
+              transition={{ duration: 1, ease: 'linear' }}
+              strokeLinecap="round"
+            />
+          </svg>
 
-        {/* Timer Text */}
-        <motion.div 
-          animate={{ 
-            scale: (isActive && seconds > 0 && seconds % 60 === 0) ? [1, 1.01, 1] : 1
-          }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="text-[44px] font-medium tracking-tighter tabular-nums text-primary z-10"
-        >
-          {formatTime(seconds)}
-        </motion.div>
+          {/* Timer text — ultra thin */}
+          <motion.div
+            animate={{ scale: isActive && seconds > 0 && seconds % 60 === 0 ? [1, 1.015, 1] : 1 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="text-[52px] tabular-nums leading-none z-10"
+            style={{
+              fontWeight: 300,
+              letterSpacing: '-0.04em',
+              color: isActive ? '#FFFFFF' : '#A1A1AA',
+              transition: 'color 0.5s ease-out',
+              textShadow: isActive ? `0 0 40px rgba(74,144,226,${glowIntensity / 120})` : 'none'
+            }}
+          >
+            {formatTime(seconds)}
+          </motion.div>
+        </div>
       </motion.div>
 
-      {/* Controls & Sound Selector */}
-      <AnimatePresence>
-        <motion.div 
-          animate={{ 
-            opacity: isActive ? 0.4 : 1,
-            y: isActive ? 40 : 0
-          }}
-          className="absolute bottom-12 flex flex-col items-center gap-8 w-full max-w-xs"
-        >
-          {/* Sound Selector */}
-          {!isActive && (
-            <div className="flex flex-col items-center gap-6 w-full">
-              <div className="flex gap-nano bg-action-dark/20 p-1 rounded-2xl border border-border-color backdrop-blur-md">
+      {/* Controls */}
+      <motion.div
+        animate={{ opacity: isActive ? 0.35 : 1, y: isActive ? 50 : 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] flex flex-col items-center gap-7 w-full max-w-xs"
+      >
+        {/* Sound selector + Volume pillar (hidden when active) */}
+        {!isActive && (
+          <div className="flex items-end justify-center gap-8 w-full px-4">
+            {/* Sound presets */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex gap-nano rounded-2xl p-1"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 {SOUND_PRESETS.map(s => {
-                  const Icon = (s.id === 'white' ? Radio : s.id === 'rain' ? Droplets : s.id === 'brown' ? Wind : Coffee);
+                  const Icon = s.id === 'white' ? Radio : s.id === 'rain' ? Droplets : s.id === 'brown' ? Wind : Coffee;
                   return (
-                    <button
+                    <motion.button
                       key={s.id}
+                      whileTap={{ scale: 0.93 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                       onClick={() => setSelectedSound(s.id)}
-                      className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all press-scale",
-                        selectedSound === s.id ? "bg-accent text-white" : "text-tertiary hover:text-secondary"
-                      )}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                      style={{
+                        background: selectedSound === s.id ? 'var(--color-accent)' : 'transparent',
+                        color: selectedSound === s.id ? '#fff' : '#52525B'
+                      }}
                     >
-                      <Icon size={18} />
-                    </button>
+                      <Icon size={17} />
+                    </motion.button>
                   );
                 })}
               </div>
-
-              {/* Volume Slider - Vertical Liquid Pillar */}
-              <div className="flex items-center justify-center gap-4 w-full px-4">
-                <VolumeX size={14} className="text-tertiary" />
-                <div
-                  className="h-32 w-6 rounded-full bg-action-dark/40 relative overflow-hidden cursor-pointer"
-                  onMouseDown={(e) => {
-                    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                    const updateFromClientY = (clientY: number) => {
-                      const ratio = 1 - (clientY - rect.top) / rect.height;
-                      const clamped = Math.max(0, Math.min(1, ratio));
-                      const nextVolume = Math.round(clamped * 100);
-                      const prevVolume = volume;
-                      if ((nextVolume === 0 || nextVolume === 100) && nextVolume !== prevVolume) {
-                        pulse('heavy');
-                      }
-                      setVolume(nextVolume);
-                    };
-                    updateFromClientY(e.clientY);
-                    const move = (moveEvent: MouseEvent) => updateFromClientY(moveEvent.clientY);
-                    const up = () => {
-                      window.removeEventListener('mousemove', move);
-                      window.removeEventListener('mouseup', up);
-                    };
-                    window.addEventListener('mousemove', move);
-                    window.addEventListener('mouseup', up);
-                  }}
-                >
-                  <motion.div
-                    initial={false}
-                    animate={{ height: `${volume}%` }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-                    className="absolute bottom-0 left-0 right-0"
-                    style={{
-                      background: 'linear-gradient(180deg, #1D4ED8, #5B21B6)'
-                    }}
-                  />
-                </div>
-                <Volume2 size={14} className="text-tertiary" />
-              </div>
             </div>
-          )}
 
-          <div className="flex items-center gap-6">
-            <LiquidButton
-              onClick={handleToggleActive}
-              className="w-14 h-14 rounded-full p-0"
-            >
-              {isActive ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-            </LiquidButton>
-
-            {!isActive && seconds > 0 ? (
-              <button 
-                onClick={onCancel}
-                className="w-10 h-10 rounded-full bg-error/10 text-error flex items-center justify-center transition-all press-scale border border-error/20"
-                title="Discard Session"
-              >
-                <X size={20} />
-              </button>
-            ) : (
-              <button 
-                onClick={() => setIsSoundOn(!isSoundOn)}
-                className={cn(
-                  "w-10 h-10 rounded-full bg-action-dark/20 flex items-center justify-center transition-all press-scale",
-                  isSoundOn ? "text-primary" : "text-tertiary"
-                )}
-              >
-                {isSoundOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
-              </button>
-            )}
+            {/* Liquid Volume Pillar */}
+            <LiquidVolumePillar volume={volume} onVolumeChange={setVolume} />
           </div>
+        )}
 
-          {/* Long-press to end */}
-          <div className="relative w-full px-8">
-            <button 
-              onMouseDown={handleLongPressStart}
-              onMouseUp={handleLongPressEnd}
-              onMouseLeave={handleLongPressEnd}
-              onTouchStart={handleLongPressStart}
-              onTouchEnd={handleLongPressEnd}
-              className="w-full h-10 text-[11px] uppercase tracking-[0.2em] font-medium text-tertiary hover:text-primary transition-colors flex flex-col items-center justify-center gap-2"
+        {/* Play/Pause + Sound toggle */}
+        <div className="flex items-center gap-6">
+          <LiquidButton onClick={handleToggleActive} className="w-14 h-14 rounded-full p-0">
+            {isActive ? <Pause size={22} /> : <Play size={22} className="ml-1" />}
+          </LiquidButton>
+
+          {!isActive && seconds > 0 ? (
+            <button
+              onClick={onCancel}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+              style={{ background: 'rgba(255,69,58,0.08)', color: '#FF453A', border: '1px solid rgba(255,69,58,0.2)' }}
             >
-              {isActive ? 'Hold to End' : 'Cancel'}
-              
-              {longPressActive && (
-                <div className="absolute bottom-0 left-8 right-8 h-[2px] bg-border-color rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${longPressProgress}%` }}
-                    className="h-full bg-accent"
-                  />
-                </div>
-              )}
+              <X size={18} />
             </button>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+          ) : (
+            <button
+              onClick={() => setIsSoundOn(!isSoundOn)}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                color: isSoundOn ? '#E4E4E7' : '#52525B',
+                border: '1px solid rgba(255,255,255,0.07)'
+              }}
+            >
+              {isSoundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
+        </div>
 
-      {/* Exit Button (Only when not active) */}
-      {!isActive && (
-        <button 
-          onClick={onCancel}
-          className="absolute top-8 left-6 w-10 h-10 flex items-center justify-center rounded-full bg-action-dark/20 text-tertiary hover:text-primary transition-colors press-scale"
-        >
-          <ChevronLeft size={20} />
-        </button>
-      )}
+        {/* Long-press to end */}
+        <div className="relative w-full px-8">
+          <button
+            onMouseDown={handleLongPressStart}
+            onMouseUp={handleLongPressEnd}
+            onMouseLeave={handleLongPressEnd}
+            onTouchStart={handleLongPressStart}
+            onTouchEnd={handleLongPressEnd}
+            className="w-full h-10 text-[11px] uppercase tracking-[0.2em] font-medium flex flex-col items-center justify-center gap-2 transition-colors"
+            style={{ color: '#3F3F46' }}
+          >
+            {isActive ? 'Hold to End' : 'Cancel'}
+            {longPressActive && (
+              <div className="absolute bottom-0 left-8 right-8 h-[1px] rounded-full overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${longPressProgress}%` }}
+                  className="h-full"
+                  style={{ background: 'var(--color-accent)' }}
+                />
+              </div>
+            )}
+          </button>
+        </div>
+      </motion.div>
 
-      {/* Audio Suspended Toast */}
+      {/* Audio suspended toast */}
       <AnimatePresence>
         {isAudioSuspended && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="absolute bottom-32 px-6 py-3 bg-error/20 border border-error/40 backdrop-blur-xl rounded-2xl flex items-center gap-3 text-error z-[110]"
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="absolute bottom-32 px-6 py-3 rounded-2xl flex items-center gap-3 z-[110]"
+            style={{ background: 'rgba(255,69,58,0.12)', border: '1px solid rgba(255,69,58,0.3)', backdropFilter: 'blur(12px)', color: '#FF453A' }}
           >
-            <AlertCircle size={18} />
+            <AlertCircle size={16} />
             <span className="text-xs font-medium">Audio suspended by browser</span>
-            <button 
-              onClick={handleResumeAudio}
-              className="px-3 py-1 bg-error text-white rounded-lg text-[10px] font-bold uppercase tracking-wider"
-            >
+            <button onClick={handleResumeAudio}
+              className="px-3 py-1 rounded-lg text-[10px] font-medium uppercase tracking-wider text-white"
+              style={{ background: '#FF453A' }}>
               Resume
             </button>
           </motion.div>

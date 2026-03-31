@@ -1,0 +1,51 @@
+The Master "Sanctuary" Refactor Prompt
+"Refactor the entire EchOS codebase into a Premium Apple-Style Sanctuary. Follow these exact specifications:
+
+1. Universal Visual Language:
+
+Themes: Night Mode must use a pure OLED Black (#000000) base. Use #0A0A0B for secondary layers and #161618 for cards to create depth through 'Visual Silence'.
+
+Typography: Use a high-end sans-serif (Inter/SF Pro). Set headers to tracking-tighter and font-medium.
+
+Animations: All transitions must be 500ms ease-out. Use motion/react to apply 'Liquid Spring' physics (stiffness: 300, damping: 30) to every button and card press.
+
+2. Syllabus 'Neural Map' (Refactor components/Syllabus.tsx):
+
+Hierarchy: Replace the grid with a vertical tree. Subjects are primary nodes connected by faint, glowing lines to sub-topics.
+
+Dopamine Magnets: When a topic hits 100%, apply a gold-glow border and a pulse animation. Add a 'Velocity Sparkline' next to each topic showing real-time study speed.
+
+UX: Implement 'Progressive Disclosure'—dim inactive subjects to 40% opacity to prevent student overwhelm.
+
+3. Focus 'Sanctuary Arena' (Refactor components/FocusRoom.tsx):
+
+Interface: Pure OLED Black, full-screen. The timer should be ultra-thin, centering the screen with a soft 'breathing' glow.
+
+Infographics: Add a real-time 'Streak Flame' that grows in intensity as the timer progresses.
+
+Audio HUD: Implement a vertical 'Liquid Volume Pillar' that shifts from Deep Blue to Vibrant Violet as volume increases.
+
+4. Advanced Logic & Safety:
+
+Study Methods: Ensure the Note type supports 5-box Leitner, Feynman, and SQ3R metadata.
+
+Data Management: In Settings.tsx, implement a 'Restore System' button that uses backup.ts for strict JSON validation before overwriting examflow_os_data.
+
+Identity: Remove all 'ExamFlow/Google' traces. Use 'imdvichrn' for branding and 'Echoless' for AI signals. Build ID: IMD-ECH-PRIME-01.
+
+5. Mobile Precision:
+
+FloatingNav: Ensure the dual-tab 'Map/Arena' layout uses env(safe-area-inset-bottom) for perfect edge-to-edge mobile scaling.
+
+Fix all black/white theme contrast bugs and ensure the UI feels heavy, expensive, and peaceful."
+
+Strategic Implementation Details
+The Volume Bug: The FocusAudioContext.ts and FocusRoom.tsx are now linked to a custom LiquidVolume component that provides haptic hits at 0% and 100% to simulate high-end hardware.
+
+The Mastery Reward: The "Elite" gold borders are calculated in Syllabus.tsx by checking node.completion === 100. This is your primary dopamine trigger.
+
+Theme Continuity: The index.css has been updated with nested variables (--bg-sanctuary, --bg-elevated) to ensure that dark and night modes never look "flat" or "buggy".
+
+Refactor Syllabus.tsx into the Neural Map hierarchy
+Design the Sanctuary Arena focus timer UI
+Implement the Liquid Volume Pillar and Audio HUD

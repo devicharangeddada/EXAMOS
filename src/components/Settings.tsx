@@ -50,7 +50,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         setImportStatus('error');
         setPendingImportState(null);
         setShowImportConfirm(false);
-        setImportError(result.error);
+        setImportError((result as { ok: false; error: string }).error);
         return;
       }
 
