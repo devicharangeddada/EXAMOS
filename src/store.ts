@@ -14,6 +14,7 @@ export const DEFAULT_STATE: AppState = {
   onboarding: {
     examName: '',
     examDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
     subjects: [],
     dailyAvailability: 4,
     completed: false,
@@ -51,25 +52,13 @@ export const loadState = (): AppState => {
     return {
       ...DEFAULT_STATE,
       ...parsed,
+      onboarding: {
+        ...DEFAULT_STATE.onboarding,
+        ...parsed.onboarding,
+      },
       settings: {
         ...DEFAULT_STATE.settings,
         ...parsed.settings,
-        soundMute: parsed.settings?.soundMute ?? false,
-        autoStartBreaks: parsed.settings?.autoStartBreaks ?? false,
-        soundType: parsed.settings?.soundType ?? 'white',
-        volume: parsed.settings?.volume ?? 0.5,
-        autoPlay: parsed.settings?.autoPlay ?? false,
-        pomodoroLength: parsed.settings?.pomodoroLength ?? 25,
-        breakLength: parsed.settings?.breakLength ?? 5,
-        strictMode: parsed.settings?.strictMode ?? false,
-        dailyGoalReminder: parsed.settings?.dailyGoalReminder ?? true,
-        streakProtection: parsed.settings?.streakProtection ?? true,
-        urgencyAlerts: parsed.settings?.urgencyAlerts ?? true,
-        gpuAcceleration: parsed.settings?.gpuAcceleration ?? false,
-        hapticFeedback: parsed.settings?.hapticFeedback ?? true,
-        activeStudyMethod: parsed.settings?.activeStudyMethod ?? 'pomodoro',
-        notificationsEnabled: parsed.settings?.notificationsEnabled ?? true,
-        timeFormat: parsed.settings?.timeFormat ?? '12h',
       }
     };
   } catch {

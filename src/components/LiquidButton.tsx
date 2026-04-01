@@ -18,7 +18,7 @@ export default function LiquidButton({ variant = 'primary', className, children,
       whileHover={{ scale: 1.01 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className={cn(
-        'rounded-[12px] font-medium flex items-center justify-center gap-small min-h-[44px] px-large',
+        'rounded-[12px] font-medium flex items-center justify-center gap-small min-h-[56px] py-3 px-6',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
         base,
         className

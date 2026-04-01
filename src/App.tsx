@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -10,11 +10,11 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
-import Syllabus from './features/syllabus/SyllabusMap';
-import FocusRoom from './components/FocusRoom';
-import Flashcards from './components/Flashcards';
-import Stats from './components/Stats';
-import Settings from './components/Settings';
+const Syllabus = lazy(() => import('./features/syllabus/SyllabusMap'));
+const FocusRoom = lazy(() => import('./components/FocusRoom'));
+const Flashcards = lazy(() => import('./components/Flashcards'));
+const Stats = lazy(() => import('./components/Stats'));
+const Settings = lazy(() => import('./components/Settings'));
 import FloatingNav from './components/FloatingNav';
 import { cn } from './lib/utils';
 import Onboarding from './components/Onboarding';
@@ -139,6 +139,8 @@ export default function App() {
 
   const densityClass = `density-${state.settings.density || 'default'}`;
 
+  const pageContent = renderPage();
+
   return (
     <div className={cn("h-screen flex flex-col overflow-hidden", themeClass, densityClass)}>
       {/* Fixed Header */}
@@ -195,7 +197,9 @@ export default function App() {
             transition={{ duration: transitionDuration, ease: "easeOut" }}
             className="min-h-full"
           >
-            {renderPage()}
+            <Suspense fallback={<div className="flex min-h-[320px] items-center justify-center"><span className="body-md text-secondary">Loading…</span></div>}>
+              {pageContent}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

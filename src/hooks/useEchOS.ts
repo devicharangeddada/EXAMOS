@@ -8,10 +8,19 @@ import { AppState, AppSettings, StudyNode, StudySession } from '../types';
 import { loadState, saveState } from '../store';
 
 export type Page = 'dashboard' | 'syllabus' | 'focus' | 'flashcards' | 'stats' | 'settings';
+const VALID_PAGES: Page[] = ['dashboard','syllabus','focus','flashcards','stats','settings'];
+
+const getPageFromHash = (hash: string): Page => {
+  const page = hash.replace(/^#/, '') as Page;
+  return VALID_PAGES.includes(page) ? page : 'dashboard';
+};
 
 export function useEchOS() {
   const [state, setState] = useState<AppState>(() => loadState());
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    if (typeof window === 'undefined') return 'dashboard';
+    return getPageFromHash(window.location.hash);
+  });
   const [isFocusActive, setIsFocusActive] = useState(false);
 
   const saveTimeoutRef = useRef<number | null>(null);
@@ -55,6 +64,31 @@ export function useEchOS() {
       document.documentElement.removeAttribute('data-env');
     }
   }, [currentPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = `#${currentPage}`;
+    if (window.location.hash !== hash) {
+      window.location.hash = hash;
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const page = getPageFromHash(window.location.hash);
+      if (page === currentPage) return;
+      if (currentPage === 'focus' && state.settings.strictMode && isFocusActive && page !== 'focus') {
+        window.location.hash = '#focus';
+        return;
+      }
+      setCurrentPage(page);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [currentPage, state.settings.strictMode, isFocusActive]);
 
   useEffect(() => {
     document.documentElement.dataset.gpu = state.settings.gpuAcceleration ? 'true' : 'false';

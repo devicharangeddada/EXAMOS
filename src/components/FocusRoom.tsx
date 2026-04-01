@@ -279,7 +279,8 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const [longPressProgress, setLongPressProgress] = useState(0);
   const [summaryDuration, setSummaryDuration] = useState(0);
 
-  const longPressTimer = useRef<number | null>(null);
+  const longPressAnimationFrame = useRef<number | null>(null);
+  const longPressStart = useRef<number | null>(null);
   const auroraTimeout = useRef<number | null>(null);
   const node = activeNodeId ? nodes[activeNodeId] : null;
   const { pulse } = useHaptics();
@@ -337,35 +338,43 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
     setShowSummary(true);
   };
 
+  const cancelLongPress = () => {
+    if (longPressAnimationFrame.current !== null) {
+      window.cancelAnimationFrame(longPressAnimationFrame.current);
+      longPressAnimationFrame.current = null;
+    }
+    longPressStart.current = null;
+  };
+
   const handleLongPressStart = () => {
     if (!isActive) return;
     setLongPressActive(true);
     setLongPressProgress(0);
-    const startTime = Date.now();
+    longPressStart.current = Date.now();
 
-    longPressTimer.current = window.setInterval(() => {
-      const elapsed = Date.now() - startTime;
+    const tick = () => {
+      if (longPressStart.current === null) return;
+      const elapsed = Date.now() - longPressStart.current;
       const progress = Math.min((elapsed / 2000) * 100, 100);
       setLongPressProgress(progress);
 
       if (progress >= 100) {
-        if (longPressTimer.current) {
-          window.clearInterval(longPressTimer.current);
-          longPressTimer.current = null;
-        }
         pulse('heavy');
         handleEnd();
+        cancelLongPress();
+        return;
       }
-    }, 16);
+
+      longPressAnimationFrame.current = window.requestAnimationFrame(tick);
+    };
+
+    longPressAnimationFrame.current = window.requestAnimationFrame(tick);
   };
 
   const handleLongPressEnd = () => {
     setLongPressActive(false);
     setLongPressProgress(0);
-    if (longPressTimer.current) {
-      window.clearInterval(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+    cancelLongPress();
   };
 
   const handleCancel = () => {

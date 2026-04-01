@@ -6,6 +6,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { cn } from '../lib/utils';
+import { getFileUrl, revokeFileUrl } from '../lib/storage';
 
 // Set up PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -33,7 +34,6 @@ export default function MediaOverlay({ file, onClose, layoutId }: MediaOverlayPr
 
   useEffect(() => {
     const loadUrl = async () => {
-      const { getFileUrl } = await import('../lib/storage');
       const fileUrl = await getFileUrl(file.id);
       setUrl(fileUrl);
     };
@@ -48,7 +48,7 @@ export default function MediaOverlay({ file, onClose, layoutId }: MediaOverlayPr
     resetHudTimeout();
 
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      if (url) revokeFileUrl(url);
       window.removeEventListener('keydown', handleEsc);
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);

@@ -27,13 +27,11 @@ export default function Dashboard({ state, onSelectSubject, onAction }: Dashboar
     const completed = allNodes.filter(n => n.status === 'done').length;
     const total = allNodes.length || 1;
     const progress = (completed / total) * 100;
-    
-    // Simple velocity check: (total / daysLeft) vs (completed / daysElapsed)
-    // For now, let's just use a target based on days remaining
-    const daysSinceStart = 1; // Placeholder
+
+    const daysSinceStart = Math.max(1, differenceInDays(new Date(), parseISO(state.onboarding.createdAt)) || 1);
     const requiredVelocity = total / (daysLeft + daysSinceStart);
     const currentVelocity = completed / daysSinceStart;
-    
+
     const isAhead = currentVelocity >= requiredVelocity;
     const remainingTopics = total - completed;
     const topicsPerDay = daysLeft > 0 ? Math.ceil(remainingTopics / daysLeft) : remainingTopics;

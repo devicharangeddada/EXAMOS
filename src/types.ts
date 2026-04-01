@@ -97,6 +97,7 @@ export interface OnboardingData {
   subjects: string[];
   dailyAvailability: number;
   completed: boolean;
+  createdAt: string;
 }
 
 export interface AppState {
