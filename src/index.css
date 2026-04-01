@@ -169,7 +169,8 @@
   }
 
   .secondary-button {
-    @apply text-primary font-medium flex items-center justify-center gap-small;
+    color: var(--text-primary);
+    @apply font-medium flex items-center justify-center gap-small;
     min-height: var(--btn-height);
     padding: 0 var(--space-large);
     border-radius: var(--radius-button);
@@ -247,15 +248,15 @@
   }
 
   .theme-light {
-    @apply bg-base-light;
+    background-color: var(--background);
     --text-primary: #1C1C1E;
     --text-secondary: #8E8E93;
     --text-tertiary: #A1A1A6;
-    --surface-bg: var(--color-surface-light);
-    --action-bg: var(--color-action-surface);
-    --border-color: var(--border-subtle-light);
+    --surface-bg: #FFFFFF;
+    --action-bg: rgba(94, 92, 230, 0.08);
+    --border-color: rgba(0, 0, 0, 0.06);
     --card-shadow: 0 10px 30px rgba(30, 30, 30, 0.06);
-    --color-accent: var(--color-primary-light);
+    --color-accent: #5E5CE6;
     color: var(--text-primary);
   }
 
@@ -294,35 +295,36 @@
   /* Focus Override Layer (Sanctuary) */
   [data-env="sanctuary"] {
     transition: background-color 500ms ease-out;
+  }
 
-    &.theme-light {
-      background-color: #ECECF0 !important;
-      --surface-bg: #DCDCE0;
-      --text-primary: #2C2C2E;
-      --border-color: rgba(0,0,0,0.05);
-    }
+  [data-env="sanctuary"].theme-light {
+    background-color: #ECECF0 !important;
+    --surface-bg: #DCDCE0;
+    --text-primary: #2C2C2E;
+    --border-color: rgba(0,0,0,0.05);
+  }
 
-    &.theme-dark {
-      background-color: var(--bg-sanctuary) !important;
-      background-image: radial-gradient(circle at center, #121214 0%, #000000 100%);
-      --surface-bg: #1F1F22;
-      --text-primary: #E5E5EA;
-      --border-color: rgba(255,255,255,0.05);
-    }
+  [data-env="sanctuary"].theme-dark {
+    background-color: var(--bg-sanctuary) !important;
+    background-image: radial-gradient(circle at center, #121214 0%, #000000 100%);
+    --surface-bg: #1F1F22;
+    --text-primary: #E5E5EA;
+    --border-color: rgba(255,255,255,0.05);
+  }
 
-    &.theme-night {
-      background-color: var(--bg-sanctuary) !important;
-      background-image: radial-gradient(circle at center, #0A0A0B 0%, #000000 100%);
-      --surface-bg: #0A0A0B;
-      --text-primary: #A1A1A6;
-      --color-accent: #FF9500;
-      --border-color: rgba(255,149,0,0.08);
-    }
+  [data-env="sanctuary"].theme-night {
+    background-color: var(--bg-sanctuary) !important;
+    background-image: radial-gradient(circle at center, #0A0A0B 0%, #000000 100%);
+    --surface-bg: #0A0A0B;
+    --text-primary: #A1A1A6;
+    --color-accent: #FF9500;
+    --border-color: rgba(255,149,0,0.08);
+  }
 
-    .surface-card, .elevated-card {
-      transition: transform 500ms ease-out, background-color 500ms ease-out;
-      transform: translateY(-2px);
-    }
+  [data-env="sanctuary"] .surface-card,
+  [data-env="sanctuary"] .elevated-card {
+    transition: transform 500ms ease-out, background-color 500ms ease-out;
+    transform: translateY(-2px);
   }
   :root[data-gpu="true"] {
     --gpu-acceleration: 1;
@@ -346,16 +348,17 @@
 
   .matte-grain {
     position: relative;
-    &::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-      opacity: 0.02;
-      pointer-events: none;
-      mix-blend-mode: overlay;
-      z-index: 10;
-    }
+  }
+
+  .matte-grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    z-index: 10;
   }
 
   * {
@@ -391,7 +394,6 @@
   .neural-line {
     background: linear-gradient(to bottom, rgba(74, 144, 226, 0.25), rgba(74, 144, 226, 0.05));
   }
-}
 
 /* Layer 1: Surface */
 .surface-card {
