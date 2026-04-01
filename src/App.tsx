@@ -18,6 +18,7 @@ import Settings from './components/Settings';
 import FloatingNav from './components/FloatingNav';
 import { cn } from './lib/utils';
 import Onboarding from './components/Onboarding';
+import { focusAudio } from './services/FocusAudioContext';
 import { useEchOS, Page } from './hooks/useEchOS';
 
 export default function App() {
@@ -77,7 +78,10 @@ export default function App() {
           nodes={state.nodes}
           updateNodes={updateNodes}
           activeNodeId={state.activeSlotId}
-          onStartFocus={(id) => handlePageChange('focus', id)}
+          onStartFocus={async (id) => {
+            await focusAudio.resume().catch(() => {});
+            handlePageChange('focus', id);
+          }}
           onSelectNode={(id) => setActiveSlotId(id)}
           onRecall={(id) => handlePageChange('flashcards', id)}
         />;

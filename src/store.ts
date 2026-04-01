@@ -35,6 +35,7 @@ export const DEFAULT_STATE: AppState = {
     dailyGoalReminder: true,
     streakProtection: true,
     urgencyAlerts: true,
+    notificationsEnabled: true,
     gpuAcceleration: false,
     hapticFeedback: true,
     activeStudyMethod: 'pomodoro',
@@ -67,6 +68,7 @@ export const loadState = (): AppState => {
         gpuAcceleration: parsed.settings?.gpuAcceleration ?? false,
         hapticFeedback: parsed.settings?.hapticFeedback ?? true,
         activeStudyMethod: parsed.settings?.activeStudyMethod ?? 'pomodoro',
+        notificationsEnabled: parsed.settings?.notificationsEnabled ?? true,
         timeFormat: parsed.settings?.timeFormat ?? '12h',
       }
     };

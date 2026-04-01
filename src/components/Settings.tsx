@@ -417,6 +417,7 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
       </div>
       <div className="space-y-nano">
         <p className="caption-sm text-tertiary px-2">System Alerts</p>
+        <ToggleRow title="Enable Notifications" description="Allow EchOS to surface study alerts and reminders" enabled={settings.notificationsEnabled} onToggle={() => updateSettings({ notificationsEnabled: !settings.notificationsEnabled })} />
         <ToggleRow title="Exam Urgency" description="Show countdown on lock screen" enabled={settings.urgencyAlerts} onToggle={() => updateSettings({ urgencyAlerts: !settings.urgencyAlerts })} />
       </div>
     </motion.div>

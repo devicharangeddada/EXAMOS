@@ -119,6 +119,16 @@ class AudioController {
     }
   }
 
+  public async resume(): Promise<void> {
+    if (!this.context) {
+      await this.initialize();
+      return;
+    }
+    if (this.context.state === 'suspended') {
+      await this.context.resume();
+    }
+  }
+
   private _applyMasterGain() {
     if (!this.masterGain || !this.context) return;
     // Logarithmic volume curve for natural feel

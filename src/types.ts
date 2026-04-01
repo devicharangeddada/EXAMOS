@@ -74,6 +74,7 @@ export interface AppSettings {
   dailyGoalReminder: boolean; // quiet reminders when goal is pending
   streakProtection: boolean;  // streak expiry alerts
   urgencyAlerts: boolean;     // exam countdown and urgency signals
+  notificationsEnabled: boolean; // master notification permission toggle
   gpuAcceleration: boolean;   // enable hardware rendering hints
   hapticFeedback: boolean;    // simulated haptics on interaction
   activeStudyMethod: 'pomodoro' | 'deep-work' | '52-17' | 'flowtime' | 'time-blocking' | 'active-recall' | 'spaced-repetition' | 'blurting' | 'feynman' | 'leitner';
