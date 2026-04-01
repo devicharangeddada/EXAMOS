@@ -96,3 +96,10 @@ export function getEnvironmentWarmth(): number {
   if (hour >= 20 || hour < 6) return 1;
   return 0;
 }
+
+export const calculateSubjectProgress = (topics: StudyNode[]): number => {
+  if (!topics || topics.length === 0) return 0;
+  const totalCompletion = topics.reduce((acc, topic) => acc + (topic.completion || 0), 0);
+  const average = totalCompletion / topics.length;
+  return Math.round(average * 10) / 10;
+};

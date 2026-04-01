@@ -307,6 +307,18 @@
   transform: scale(0.96);
 }
 
+.status-easy {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10B981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+}
+
+.recall-card {
+  background: #0A0A0B;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .secondary-button {
   @apply font-medium rounded-[16px] press-scale flex items-center justify-center;
   background-color: transparent;

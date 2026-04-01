@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyNode, NodeStatus } from '../types';
+import { calculateSubjectProgress } from '../lib/brain';
 import { 
   Plus, 
   Trash2, 
@@ -56,6 +57,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(activeNodeId);
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
+  const [newSubjectTitle, setNewSubjectTitle] = useState('');
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
 
   useEffect(() => {
     if (activeNodeId) {
@@ -73,12 +76,18 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       if (!node) return 0;
       const children = Object.values(nodes).filter(n => n.parentId === id);
       if (children.length === 0) {
-        const val = node.status === 'done' ? 100 : node.status === 'in-progress' ? 50 : 0;
+        const val = node.completion !== undefined
+          ? node.completion
+          : node.status === 'done'
+            ? 100
+            : node.status === 'in-progress'
+              ? 50
+              : 0;
         completions[id] = val;
         return val;
       }
-      const sum = children.reduce((acc, child) => acc + getComp(child.id), 0);
-      const val = Math.round(sum / children.length);
+      const childProgress = children.map(child => ({ ...child, completion: getComp(child.id) }));
+      const val = calculateSubjectProgress(childProgress);
       completions[id] = val;
       return val;
     };
@@ -116,14 +125,22 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
     onSelectNode(id);
   };
 
-  const addNode = (parentId: string | null = null) => {
-    const id = Math.random().toString(36).substring(7);
+  const addNode = (parentId: string | null = null, title?: string) => {
+    const id = crypto.randomUUID();
     const newNode: StudyNode = {
-      id, title: parentId ? 'New Topic' : 'New Subject', parentId,
-      status: 'not-started', notes: [], attachments: [],
+      id,
+      title: title ?? (parentId ? 'New Topic' : 'New Subject'),
+      parentId,
+      status: 'not-started',
+      notes: [],
+      attachments: [],
       order: Object.values(nodes).filter(n => n.parentId === parentId).length,
-      weight: 1, failCount: 0, focusDifficulty: 0,
-      lastInteraction: new Date().toISOString(), isPriority: false, completion: 0,
+      weight: 1,
+      failCount: 0,
+      focusDifficulty: 0,
+      lastInteraction: new Date().toISOString(),
+      isPriority: false,
+      completion: 0,
     };
     updateNodes(prev => ({ ...prev, [id]: newNode }));
     setEditingNodeId(id);
@@ -132,6 +149,15 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       next.add(parentId);
       setExpandedIds(next);
     }
+    return id;
+  };
+
+  const handleAddSubject = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newSubjectTitle.trim()) return;
+    addNode(null, newSubjectTitle.trim());
+    setNewSubjectTitle('');
+    setIsAddingSubject(false);
   };
 
   const togglePriority = (id: string) => {
@@ -217,7 +243,7 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={() => addNode(null)}
+                onClick={() => setIsAddingSubject(true)}
                 className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-white/15"
               >
                 + New Subject
@@ -230,6 +256,38 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
               </button>
             </div>
           </div>
+          {isAddingSubject && (
+            <form onSubmit={handleAddSubject} className="mt-4 space-y-small">
+              <input
+                autoFocus
+                value={newSubjectTitle}
+                onChange={(e) => setNewSubjectTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                className="w-full rounded-xl border border-border-color bg-[#090A0C]/90 px-4 py-3 text-[14px] text-primary outline-none transition focus:border-accent/50"
+                placeholder="Subject name..."
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)] active:scale-95"
+                >
+                  Save (Enter)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingSubject(false); setNewSubjectTitle(''); }}
+                  className="inline-flex items-center justify-center rounded-xl border border-border-color bg-background px-4 py-2 text-sm text-tertiary transition hover:border-white/20"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Sticky Top Bar */}

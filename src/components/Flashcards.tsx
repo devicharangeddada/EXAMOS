@@ -411,7 +411,7 @@ export default function Flashcards({ nodes, onFinish, updateNodes, initialMode =
             </button>
             <button 
               onClick={() => handleSwipe('right')}
-              className="flex-1 flex flex-col items-center gap-nano p-medium bg-accent rounded-2xl text-white shadow-lg shadow-accent/20 hover:opacity-90 transition-all active:scale-95"
+              className="flex-1 flex flex-col items-center gap-nano p-medium rounded-2xl status-easy hover:bg-emerald-500/15 transition-all active:scale-95"
             >
               <ArrowRight size={20} />
               <span className="text-[9px] font-bold uppercase tracking-widest">Easy</span>
@@ -562,7 +562,7 @@ const FlashcardItem: React.FC<{
         {/* Swipe Indicators */}
         <motion.div 
           style={{ opacity: useTransform(x, [0, 100], [0, 1]) }}
-          className="absolute top-1/2 right-large -translate-y-1/2 text-success font-black text-[14px] uppercase tracking-widest border-2 border-success px-small py-nano rounded-lg rotate-90"
+          className="absolute top-1/2 right-large -translate-y-1/2 text-[#10B981] font-black text-[14px] uppercase tracking-widest border-2 border-[#10B981] px-small py-nano rounded-lg rotate-90 bg-[#041F0E]/40"
         >
           Easy
         </motion.div>
