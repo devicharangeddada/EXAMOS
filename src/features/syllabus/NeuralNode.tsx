@@ -1,4 +1,4 @@
-import { useMemo, type FC } from 'react';
+import { useMemo, useState, useEffect, type FC } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, Plus, Edit3, Trash2, CheckCircle2, Clock, Target, Zap, Play, X } from 'lucide-react';
 import { StudyNode, NodeStatus } from '../../types';
@@ -29,6 +29,7 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
     onSelect,
     onStartFocus,
     onRecall,
+    editingNodeId,
     setEditingNodeId,
   } = useSyllabusContext();
 
@@ -37,6 +38,14 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
       .filter((n) => n.parentId === node.id)
       .sort((a, b) => a.order - b.order);
   }, [nodes, node.id]);
+
+  const [editTitle, setEditTitle] = useState(node.title);
+
+  useEffect(() => {
+    if (editingNodeId === node.id) {
+      setEditTitle(node.title);
+    }
+  }, [editingNodeId, node.id, node.title]);
 
   const isExpanded = expandedIds.has(node.id);
   const completion = nodeCompletions[node.id] || 0;
@@ -77,8 +86,10 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
       )}
 
       <motion.div
+        layout="position"
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        style={{ marginLeft: level > 0 ? 'clamp(12px, 4vw, 22px)' : '0' }}
         className={cn(
           'group relative flex flex-col rounded-[16px] cursor-pointer border transition-all duration-500 min-h-[44px]',
           level === 0 ? 'p-[16px] mb-[2px]' : 'p-[12px] mb-[2px]',
@@ -106,9 +117,42 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
             }}
           />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-small">
-              {node.id === undefined ? null : (
-                <span className={cn('truncate tracking-tighter font-medium', level === 0 ? 'text-[16px] text-primary' : 'text-[14px] text-secondary')}>
+            <div className="flex min-w-0 items-center justify-between gap-small">
+              {node.id === undefined ? null : editingNodeId === node.id ? (
+                <input
+                  autoFocus
+                  className={cn(
+                    'flex-1 bg-background border border-accent/50 outline-none rounded-md px-2 py-1 w-full',
+                    level === 0 ? 'text-[16px] text-primary' : 'text-[14px] text-primary'
+                  )}
+                  value={editTitle}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={() => {
+                    const finalTitle = editTitle.trim() || node.title;
+                    if (finalTitle !== node.title) {
+                      updateNodes((prev) => ({
+                        ...prev,
+                        [node.id]: { ...prev[node.id], title: finalTitle },
+                      }));
+                    }
+                    setEditingNodeId(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditTitle(node.title);
+                      setEditingNodeId(null);
+                    }
+                  }}
+                />
+              ) : (
+                <span className={cn('truncate tracking-tighter font-medium block w-full', level === 0 ? 'text-[16px] text-primary' : 'text-[14px] text-secondary')}>
                   {node.title}
                   {isElite && <span className="ml-1 text-[10px]" style={{ color: 'rgba(253,196,45,0.9)' }}>★</span>}
                 </span>
@@ -194,7 +238,17 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
                 </div>
                 <div className="flex items-center gap-small">
                   <button onClick={() => addNode(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors" aria-label="Add child topic" type="button"><Plus size={16} /></button>
-                  <button onClick={() => setEditingNodeId(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors" aria-label="Edit node title" type="button"><Edit3 size={16} /></button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingNodeId(node.id);
+                    }}
+                    className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors"
+                    aria-label="Edit node title"
+                    type="button"
+                  >
+                    <Edit3 size={16} />
+                  </button>
                   <button onClick={() => deleteNode(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-error border border-border-color bg-surface-bg transition-colors" aria-label="Delete node" type="button"><Trash2 size={16} /></button>
                 </div>
               </div>

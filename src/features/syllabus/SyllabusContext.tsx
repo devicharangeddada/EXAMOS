@@ -8,6 +8,7 @@ export interface SyllabusContextValue {
   selectedNodeId: string | null;
   expandedIds: Set<string>;
   searchQuery: string;
+  editingNodeId: string | null;
   updateNodes: (updater: (nodes: Record<string, StudyNode>) => Record<string, StudyNode>) => void;
   addNode: (parentId: string | null, title?: string) => string;
   deleteNode: (id: string) => void;

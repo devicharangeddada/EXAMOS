@@ -106,7 +106,9 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
       completion: 0,
     };
     updateNodes((prev) => ({ ...prev, [id]: newNode }));
-    setEditingNodeId(id);
+    if (!title) {
+      setEditingNodeId(id);
+    }
     if (parentId) {
       setExpandedIds((prev) => {
         const next = new Set(prev);
@@ -247,6 +249,7 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
       setActiveSubjectId,
       setExpandedIds,
       setSearchQuery,
+      editingNodeId,
       onSelect: handleSelectNode,
       onStartFocus,
       onRecall,
@@ -259,6 +262,7 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
       selectedNodeId,
       expandedIds,
       searchQuery,
+      editingNodeId,
       updateNodes,
       addNode,
       deleteNode,

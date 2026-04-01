@@ -184,10 +184,13 @@ export default function App() {
       </header>
 
       {/* Content Area */}
-      <main className={cn(
-        "flex-1 overflow-y-auto px-medium pb-32 max-w-4xl mx-auto w-full scroll-smooth",
-        currentPage === 'focus' ? "p-0 max-w-none" : "pt-header"
-      )}>
+      <main
+        className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden px-medium max-w-4xl mx-auto w-full scroll-smooth",
+          currentPage === 'focus' ? "p-0 max-w-none" : "pt-header"
+        )}
+        style={{ paddingBottom: 'calc(110px + env(safe-area-inset-bottom))' }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}

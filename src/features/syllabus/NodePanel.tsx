@@ -37,7 +37,10 @@ export default function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus,
   };
 
   return (
-    <div className="surface-card space-y-medium">
+    <div
+      className="surface-card space-y-medium"
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="space-y-nano">
         <p className="text-[18px] font-medium tracking-tighter text-primary leading-tight">{node.title}</p>
         <div className="flex gap-small">
