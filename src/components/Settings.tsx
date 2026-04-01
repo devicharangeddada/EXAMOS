@@ -629,7 +629,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         <p className="caption-sm text-tertiary px-2">Connect</p>
         {[
           { label: 'GitHub', sub: 'Source & contributions', href: 'https://github.com/imdvichrn' },
-          { label: 'Twitter / X', sub: '@imdvichrn', href: 'https://twitter.com/imdvichrn' },
+          { label: 'X', sub: '@imdvichrn', href: 'https://twitter.com/imdvichrn' },
+          { label: 'Instagram', sub: '@imdvichrn', href: 'https://instagram.com/imdvichrn' },
         ].map(link => (
           <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
             className={cn("w-full flex items-center gap-medium px-medium rounded-2xl transition-all group relative", "h-[var(--row-height)] hover:bg-action-light/50 dark:hover:bg-action-dark/50")}>
@@ -692,7 +693,7 @@ function CategoryRow({ icon, title, description, onClick }: { icon: React.ReactN
 
 function ToggleRow({ title, description, enabled, onToggle }: { title: string; description: string; enabled: boolean; onToggle: () => void }) {
   return (
-    <div className="w-full h-[var(--row-height)] flex items-center gap-medium px-medium rounded-2xl relative">
+    <div className="w-full h-[var(--row-height)] flex items-center gap-medium px-medium rounded-2xl relative" style={{ backgroundColor: 'var(--bg-card)' }}>
       <div className="flex-1 text-left">
         <p className="text-[15px] font-medium leading-none text-primary">{title}</p>
         <p className="text-[12px] text-secondary leading-tight">{description}</p>
@@ -700,9 +701,9 @@ function ToggleRow({ title, description, enabled, onToggle }: { title: string; d
       <motion.button onClick={onToggle}
         whileTap={{ scale: 0.92 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={cn("w-12 h-6 rounded-full transition-all relative", enabled ? "bg-accent" : "bg-action-light dark:bg-action-dark")}>
+        className={cn("w-12 h-6 rounded-full transition-all relative", enabled ? "bg-[var(--track-on)]" : "bg-[var(--track-off)]")}>
         <motion.div animate={{ x: enabled ? 26 : 2 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm" />
+          className="absolute top-1 w-4 h-4 rounded-full bg-[var(--thumb)] shadow-sm" />
       </motion.button>
       <div className="absolute bottom-0 left-[var(--space-large)] right-0 h-[0.5px] bg-border-color" />
     </div>

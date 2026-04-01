@@ -21,8 +21,7 @@ export default function FloatingNav({ items, activeTab, onTabChange, className, 
     <nav
       className={cn(
         "fixed left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[480px] h-[64px] rounded-[26px] z-50 flex items-center justify-around px-1",
-        "bg-white/75 backdrop-blur-[20px] border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.1)]",
-        "dark:bg-[#0A0A0B]/88 dark:border-white/[0.07]",
+        "bg-[rgba(21,24,33,0.7)] backdrop-blur-[12px] border border-[rgba(255,255,255,0.05)] shadow-[0_8px_30px_rgba(0,0,0,0.18)]",
         locked && "opacity-30 pointer-events-none",
         className
       )}
@@ -65,7 +64,7 @@ export default function FloatingNav({ items, activeTab, onTabChange, className, 
                 size={isFocus ? 22 : 20}
                 className="transition-colors duration-300"
                 style={{
-                  color: isFocus ? '#fff' : isActive ? 'var(--color-accent)' : undefined
+                  color: isFocus ? '#fff' : isActive ? '#6C8CFF' : '#8A90A2'
                 }}
                 fill={isActive || isFocus ? "currentColor" : "none"}
                 strokeWidth={isActive || isFocus ? 2 : 1.5}

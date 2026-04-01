@@ -84,9 +84,16 @@
   --transition-timing: ease-out;
 
   /* Sanctuary Design Tokens */
-  --bg-sanctuary: #000000;
-  --bg-elevated: #0A0A0B;
-  --bg-card: #161618;
+  --bg-sanctuary: #0D0F14;
+  --bg-elevated: #151821;
+  --bg-card: #151821;
+  --color-accent: #6C8CFF;
+  --text-primary: #E6EAF2;
+  --text-secondary: #A6AED7;
+  --text-tertiary: #8A90A2;
+  --track-off: #2A2F3A;
+  --track-on: #6C8CFF;
+  --thumb: #FFFFFF;
 }
 
 @layer base {
@@ -121,29 +128,29 @@
 
   .theme-dark {
     background-color: var(--bg-elevated);
-    --text-primary: #E4E4E7;
-    --text-secondary: #71717A;
-    --text-tertiary: #8E8E93;
-    --surface-bg: var(--color-surface-dark);
-    --action-bg: var(--bg-elevated);
-    --border-color: var(--border-subtle-dark);
+    --text-primary: var(--text-primary);
+    --text-secondary: var(--text-secondary);
+    --text-tertiary: var(--text-tertiary);
+    --surface-bg: var(--bg-card);
+    --action-bg: rgba(108, 140, 255, 0.08);
+    --border-color: rgba(255,255,255,0.08);
     --card-shadow: none;
-    --color-accent: var(--color-primary-dark);
+    --color-accent: var(--color-accent);
     color: var(--text-primary);
   }
 
   /* Night Mode: Pure OLED Black Sanctuary */
   .theme-night {
-    background-color: #000000;
-    background-image: radial-gradient(circle at center, #0A0A0B 0%, #000000 100%);
-    --text-primary: #E4E4E7;
-    --text-secondary: #A1A1A6;
-    --text-tertiary: #6E6E73;
-    --surface-bg: #0A0A0B;
-    --action-bg: #161618;
+    background-color: #0D0F14;
+    background-image: radial-gradient(circle at center, #151821 0%, #0D0F14 100%);
+    --text-primary: var(--text-primary);
+    --text-secondary: var(--text-secondary);
+    --text-tertiary: var(--text-tertiary);
+    --surface-bg: var(--bg-card);
+    --action-bg: rgba(108, 140, 255, 0.08);
     --border-color: rgba(255,255,255,0.08);
     --card-shadow: none;
-    --color-accent: var(--color-primary-dark);
+    --color-accent: var(--color-accent);
     color: var(--text-primary);
   }
 
