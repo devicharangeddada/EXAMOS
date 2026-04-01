@@ -42,20 +42,22 @@ export default function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus,
         <p className="text-[18px] font-medium tracking-tighter text-primary leading-tight">{node.title}</p>
         <div className="flex gap-small">
           <motion.button
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             onClick={onStartFocus}
-            className="flex-1 flex items-center justify-center gap-nano primary-button !rounded-xl !h-9 text-[12px]"
+            className="flex-1 flex min-h-[44px] items-center justify-center gap-small primary-button !rounded-[12px] text-[13px]"
+            type="button"
           >
-            <Play size={13} fill="currentColor" /> Focus
+            <Play size={16} fill="currentColor" /> Focus
           </motion.button>
           <motion.button
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             onClick={onRecall}
-            className="flex-1 flex items-center justify-center gap-nano secondary-button !rounded-xl !h-9 text-[12px]"
+            className="flex-1 flex min-h-[44px] items-center justify-center gap-small secondary-button !rounded-[12px] text-[13px]"
+            type="button"
           >
-            <Zap size={13} /> Recall
+            <Zap size={16} /> Recall
           </motion.button>
         </div>
       </div>
@@ -109,14 +111,14 @@ export default function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus,
             type="submit"
             disabled={!noteReady || isSaving}
             className={cn(
-              "w-full mt-small inline-flex items-center justify-center gap-nano rounded-xl bg-accent text-white px-medium py-3 text-[12px] font-medium transition-all",
+              "w-full mt-small inline-flex items-center justify-center gap-small rounded-[12px] bg-accent text-white px-medium text-[13px] font-medium transition-all min-h-[44px]",
               noteReady && !isSaving
-                ? 'hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)] active:scale-95'
+                ? 'hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)]'
                 : 'opacity-50 grayscale cursor-not-allowed'
             )}
           >
             {isSaving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Note'}
-            {saveSuccess ? <CheckCircle2 size={14} /> : <Plus size={14} />}
+            {saveSuccess ? <CheckCircle2 size={16} /> : <Plus size={16} />}
           </button>
         </form>
       </div>

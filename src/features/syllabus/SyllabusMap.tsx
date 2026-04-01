@@ -286,14 +286,14 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setIsAddingSubject(true)}
-                  className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-white/15"
+                  className="min-h-[44px] rounded-[12px] border border-white/10 bg-white/10 px-large text-[13px] font-medium text-white transition hover:bg-white/15"
                   type="button"
                 >
                   + New Subject
                 </button>
                 <button
                   onClick={() => addNode(selectedNodeId)}
-                  className="rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-[12px] font-medium text-accent transition hover:bg-accent/15"
+                  className="min-h-[44px] rounded-[12px] border border-accent/20 bg-accent/10 px-large text-[13px] font-medium text-accent transition hover:bg-accent/15"
                   type="button"
                 >
                   + New Topic
@@ -318,7 +318,7 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)] active:scale-95"
+                    className="inline-flex items-center justify-center min-h-[44px] rounded-[12px] bg-accent px-large text-[13px] font-medium text-white transition hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)]"
                   >
                     Save (Enter)
                   </button>
@@ -328,7 +328,7 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
                       setIsAddingSubject(false);
                       setNewSubjectTitle('');
                     }}
-                    className="inline-flex items-center justify-center rounded-xl border border-border-color bg-background px-4 py-2 text-sm text-tertiary transition hover:border-white/20"
+                    className="inline-flex items-center justify-center min-h-[44px] rounded-[12px] border border-border-color bg-background px-large text-[13px] text-tertiary transition hover:border-white/20"
                   >
                     Cancel
                   </button>
@@ -405,11 +405,11 @@ export default function SyllabusMap({ nodes, updateNodes, activeNodeId, onStartF
                         e.stopPropagation();
                         onStartFocus(node.id);
                       }}
-                      className="p-small bg-accent/10 text-accent rounded-full hover:bg-accent/20 transition-colors"
+                      className="w-11 h-11 flex items-center justify-center rounded-[12px] bg-accent/10 text-accent transition-colors hover:bg-accent/20"
                       type="button"
                       aria-label={`Start focus on ${node.title}`}
                     >
-                      <Play size={14} fill="currentColor" />
+                      <Play size={16} fill="currentColor" />
                     </button>
                   </motion.div>
                 ))}

@@ -160,9 +160,9 @@ export default function App() {
             <div className="w-[22px] h-[22px] rounded-md bg-accent/10 flex items-center justify-center text-accent font-bold text-[11px] tracking-tight">
               EO
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <h1 className="text-[16px] font-medium tracking-tight text-primary truncate">{appName}</h1>
-              <span className="text-[10px] text-tertiary">Developed by imdvichrn &amp; Echoless</span>
+              <span className="text-[10px] text-tertiary truncate max-w-[180px]">Developed by imdvichrn &amp; Echoless</span>
             </div>
           </div>
         </div>

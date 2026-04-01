@@ -21,7 +21,7 @@ export default function FloatingNav({ items, activeTab, onTabChange, className, 
     <nav
       className={cn(
         "fixed left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[480px] h-[64px] rounded-[26px] z-50 flex items-center justify-around px-1",
-        "bg-[rgba(21,24,33,0.7)] backdrop-blur-[12px] border border-[rgba(255,255,255,0.05)] shadow-[0_8px_30px_rgba(0,0,0,0.18)]",
+        "bg-[rgba(18,18,20,0.75)] backdrop-blur-[20px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_20px_40px_rgba(0,0,0,0.18)]",
         locked && "opacity-30 pointer-events-none",
         className
       )}
@@ -37,7 +37,7 @@ export default function FloatingNav({ items, activeTab, onTabChange, className, 
           <motion.button
             key={item.id}
             onClick={() => !locked && onTabChange(item.id)}
-            whileTap={{ scale: 0.91 }}
+            whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={cn(
               "relative flex-1 h-full flex flex-col items-center justify-center transition-all duration-500",

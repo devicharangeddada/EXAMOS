@@ -9,17 +9,17 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 export default function LiquidButton({ variant = 'primary', className, children, ...props }: Props) {
   const base =
     variant === 'primary'
-      ? 'bg-accent text-white shadow-lg shadow-accent/20'
-      : 'bg-action-light dark:bg-action-dark text-primary border border-border-color';
+      ? 'bg-accent text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+      : 'bg-[var(--surface-bg)] text-primary border border-border-color';
 
   return (
     <motion.button
-      whileTap={{ scale: 0.95 }}
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+      whileTap={{ scale: 0.97 }}
+      whileHover={{ scale: 1.01 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className={cn(
-        'rounded-2xl font-medium flex items-center justify-center gap-small h-14 px-medium',
-        'focus:outline-none focus-visible:ring-2 ring-accent/40',
+        'rounded-[12px] font-medium flex items-center justify-center gap-small min-h-[44px] px-large',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
         base,
         className
       )}

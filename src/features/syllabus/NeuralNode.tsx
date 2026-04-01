@@ -80,8 +80,8 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
-          'group relative flex flex-col rounded-xl cursor-pointer border transition-all duration-500',
-          level === 0 ? 'p-small mb-[2px]' : 'p-[10px] mb-[2px]',
+          'group relative flex flex-col rounded-[16px] cursor-pointer border transition-all duration-500 min-h-[44px]',
+          level === 0 ? 'p-[16px] mb-[2px]' : 'p-[12px] mb-[2px]',
           isElite && 'elite-node',
           !isElite && 'border-transparent',
           isSelected && 'border-accent/60 bg-accent/10 shadow-[0_0_28px_rgba(108,140,255,0.14)]',
@@ -122,10 +122,14 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
                     e.stopPropagation();
                     togglePriority(node.id);
                   }}
-                  className={cn('p-small transition-colors', node.isPriority ? 'text-accent' : 'text-tertiary/30 hover:text-accent')}
+                  className={cn(
+                    'w-11 h-11 flex items-center justify-center rounded-[12px] transition-colors',
+                    node.isPriority ? 'text-accent' : 'text-tertiary/30 hover:text-accent'
+                  )}
                   aria-label={node.isPriority ? 'Remove priority' : 'Mark as priority'}
+                  type="button"
                 >
-                  <Star size={12} fill={node.isPriority ? 'currentColor' : 'none'} />
+                  <Star size={14} fill={node.isPriority ? 'currentColor' : 'none'} />
                 </button>
               </div>
             </div>
@@ -155,18 +159,20 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
             >
               <div className="flex items-center gap-small pt-small pb-[2px]">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                   onClick={() => onStartFocus(node.id)}
-                  className="flex-1 flex items-center justify-center gap-nano py-nano bg-accent text-white rounded-lg text-[11px] font-medium hover:opacity-90"
+                  className="flex-1 flex min-h-[44px] items-center justify-center gap-small rounded-[12px] bg-accent text-white text-[13px] font-medium hover:opacity-90"
+                  type="button"
                 >
                   <Play size={11} fill="currentColor" /> Focus
                 </motion.button>
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                   onClick={() => onRecall(node.id)}
-                  className="flex-1 flex items-center justify-center gap-nano py-nano rounded-lg text-[11px] font-medium border border-border-color bg-action-light dark:bg-action-dark text-primary"
+                  className="flex-1 flex min-h-[44px] items-center justify-center gap-small rounded-[12px] text-[13px] font-medium border border-border-color bg-action-light dark:bg-action-dark text-primary"
+                  type="button"
                 >
                   <Zap size={11} /> Recall
                 </motion.button>
@@ -176,7 +182,7 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
                       key={status}
                       onClick={() => updateNodeStatus(node.id, status)}
                       className={cn(
-                        'w-6 h-6 flex items-center justify-center rounded-md transition-all',
+                        'w-11 h-11 flex items-center justify-center rounded-[12px] transition-all',
                         node.status === status ? 'bg-white dark:bg-black shadow-sm text-accent' : 'text-tertiary hover:text-primary'
                       )}
                       aria-label={`Mark ${node.title} as ${status}`}
@@ -186,10 +192,10 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-nano">
-                  <button onClick={() => addNode(node.id)} className="p-small text-tertiary hover:text-primary" aria-label="Add child topic" type="button"><Plus size={13} /></button>
-                  <button onClick={() => setEditingNodeId(node.id)} className="p-small text-tertiary hover:text-primary" aria-label="Edit node title" type="button"><Edit3 size={13} /></button>
-                  <button onClick={() => deleteNode(node.id)} className="p-small text-tertiary hover:text-error" aria-label="Delete node" type="button"><Trash2 size={13} /></button>
+                <div className="flex items-center gap-small">
+                  <button onClick={() => addNode(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors" aria-label="Add child topic" type="button"><Plus size={16} /></button>
+                  <button onClick={() => setEditingNodeId(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors" aria-label="Edit node title" type="button"><Edit3 size={16} /></button>
+                  <button onClick={() => deleteNode(node.id)} className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-error border border-border-color bg-surface-bg transition-colors" aria-label="Delete node" type="button"><Trash2 size={16} /></button>
                 </div>
               </div>
             </motion.div>
