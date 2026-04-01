@@ -63,8 +63,7 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
     return searchQuery !== '' && check(node.id);
   }, [nodes, node.id, searchQuery]);
 
-  const isDimmed = searchQuery !== '' && !matchesSearch && !hasMatchingChild;
-  const isInactive = level === 0 && activeSubjectId !== null && activeSubjectId !== node.id && searchQuery === '';
+  const isSearchDimmed = searchQuery !== '' && !matchesSearch && !hasMatchingChild;
 
   const statusColor = node.status === 'done' ? '#34C759' : node.status === 'in-progress' ? '#FF9F0A' : 'var(--text-tertiary)';
   const connectorStartX = Math.max(18, 24 - level * 4);
@@ -75,7 +74,7 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
       layout
       className={cn(
         'relative transition-opacity duration-500',
-        isDimmed ? 'opacity-20' : isInactive ? 'opacity-40' : 'opacity-100'
+        isSearchDimmed ? 'opacity-70' : 'opacity-100'
       )}
     >
       {level > 0 && (
@@ -91,12 +90,13 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{ marginLeft: level > 0 ? 'clamp(12px, 4vw, 22px)' : '0' }}
         className={cn(
-          'group relative flex flex-col rounded-[16px] cursor-pointer border transition-all duration-500 min-h-[44px]',
-          level === 0 ? 'p-[16px] mb-[2px]' : 'p-[12px] mb-[2px]',
-          isElite && 'elite-node',
-          !isElite && 'border-transparent',
-          isSelected && 'border-accent/60 bg-accent/10 shadow-[0_0_28px_rgba(108,140,255,0.14)]',
-          isExpanded ? 'bg-black/[0.03] dark:bg-white/[0.03]' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'
+          'group relative flex flex-col rounded-[18px] cursor-pointer border transition-all duration-500 min-h-[52px] overflow-hidden',
+          level === 0 ? 'p-[18px] mb-3' : 'p-[14px] mb-2',
+          'bg-white/95 dark:bg-white/5',
+          isExpanded ? 'bg-black/[0.04] dark:bg-white/[0.05]' : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.06]',
+          isSelected && 'border-accent/70 bg-accent/12 shadow-[0_0_30px_rgba(94,92,230,0.18)] ring-1 ring-accent/15',
+          !isSelected && 'border-transparent',
+          isSearchDimmed && 'opacity-70'
         )}
         onClick={() => {
           toggleExpand(node.id);

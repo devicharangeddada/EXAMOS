@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppSettings, AppState } from '../types';
 import {
@@ -695,32 +695,27 @@ function CategoryRow({ icon, title, description, onClick }: { icon: React.ReactN
 }
 
 function ToggleRow({ title, description, enabled, onToggle }: { title: string; description: string; enabled: boolean; onToggle: () => void }) {
+  const id = useId();
+
   return (
-    <div className="w-full min-h-[44px] flex items-center gap-medium px-medium rounded-[16px] relative" style={{ backgroundColor: 'var(--bg-card)' }}>
+    <div className="w-full min-h-[54px] flex items-center gap-medium px-medium rounded-[20px] relative" style={{ backgroundColor: 'var(--bg-card)' }}>
       <div className="flex-1 text-left">
         <p className="text-[15px] font-medium leading-none text-primary">{title}</p>
         <p className="text-[12px] text-secondary leading-tight">{description}</p>
       </div>
-      <motion.button
-        onClick={onToggle}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className={cn(
-          "relative inline-flex flex-shrink-0 items-center rounded-full transition-colors duration-200",
-          enabled ? "bg-[var(--track-on)]" : "bg-[var(--track-off)]"
-        )}
-        style={{ width: 44, height: 24, boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.06)' }}
-        aria-pressed={enabled}
-        aria-label={`${enabled ? 'Disable' : 'Enable'} ${title}`}
-        type="button"
-      >
-        <motion.span
-          animate={{ x: enabled ? 20 : 2 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="absolute top-[2px] left-0 rounded-full bg-[var(--thumb)]"
-          style={{ width: 20, height: 20, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}
+      <div className="elite-toggle">
+        <input
+          id={id}
+          type="checkbox"
+          checked={enabled}
+          onChange={onToggle}
+          aria-checked={enabled}
+          aria-label={`${enabled ? 'Disable' : 'Enable'} ${title}`}
         />
-      </motion.button>
+        <label htmlFor={id} className="track">
+          <span className="thumb" />
+        </label>
+      </div>
       <div className="absolute bottom-0 left-[var(--space-large)] right-0 h-[1px] bg-border-color" />
     </div>
   );

@@ -418,8 +418,8 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#121128_0%,transparent_28%),radial-gradient(circle_at_bottom,#0A0A0B_0%,transparent_42%)]" />
 
       <div className="absolute inset-x-0 top-0 z-20 px-4 pt-[calc(env(safe-area-inset-top,18px)+18px)]">
-        <div className="mx-auto flex max-w-[1000px] flex-col gap-4 rounded-[32px] border border-white/10 bg-white/8 px-5 py-4 backdrop-blur-2xl shadow-[0_18px_42px_rgba(0,0,0,0.26)]">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-[1000px] flex-col gap-5 rounded-[32px] border border-white/10 bg-white/10 px-6 py-6 backdrop-blur-2xl shadow-[0_18px_42px_rgba(0,0,0,0.24)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-[11px] uppercase tracking-[0.32em] text-white/50">Elite Sanctuary</p>
               <h1 className="text-[22px] font-semibold tracking-tight text-white">{currentTitle}</h1>
@@ -430,8 +430,8 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
               <span className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-[11px] text-white/80">Volume {volume}%</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-center">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-center backdrop-blur-xl">
               <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Streak</p>
               <p className="text-[18px] font-semibold text-white">{Math.floor(getElapsedSeconds() / 60)}m</p>
             </div>
@@ -575,13 +575,13 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
         {settings.strictMode && isActive ? <Lock size={16} /> : <ChevronLeft size={20} />}
       </button>
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-[1000px] flex-col items-center justify-center px-4 pt-[calc(env(safe-area-inset-top,24px)+170px)] pb-[calc(env(safe-area-inset-bottom,24px)+96px)]">
+      <div className="relative mx-auto flex min-h-full w-full max-w-[1000px] flex-col items-center justify-center gap-10 px-4 pt-[calc(env(safe-area-inset-top,24px)+170px)] pb-[calc(env(safe-area-inset-bottom,24px)+96px)]">
         <MemoizedTimerArena isActive={isActive} targetSeconds={targetSeconds} registerTick={registerTick} />
 
         <motion.div
           animate={{ opacity: isActive ? 0.32 : 1, y: isActive ? 48 : 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="absolute bottom-[calc(env(safe-area-inset-bottom,16px)+16px)] flex w-full max-w-[420px] flex-col items-center gap-6"
+          className="absolute bottom-[calc(env(safe-area-inset-bottom,16px)+16px)] flex w-full max-w-[420px] flex-col items-center gap-5"
         >
           <div className="absolute right-6 top-[-52px] z-40">
             <LiquidVolumePillar volume={volume} onVolumeChange={setVolume} />
