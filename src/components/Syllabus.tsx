@@ -398,10 +398,10 @@ function NeuralNode({
     >
       {/* L-shaped Apple-style connector: horizontal arm from vertical border to this node */}
       {level > 0 && (
-        <div
-          className="absolute left-[-12px] top-[18px] w-[12px] h-[1px] pointer-events-none"
-          style={{ background: 'rgba(74,144,226,0.22)' }}
-        />
+        <svg className="absolute left-[-20px] top-[12px] w-8 h-8 pointer-events-none" viewBox="0 0 32 32">
+          <path d="M24 4 C24 4, 10 4, 10 18" fill="none" stroke="rgba(74,144,226,0.22)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M10 18 L10 28" fill="none" stroke="rgba(74,144,226,0.22)" strokeWidth="2" strokeLinecap="round" />
+        </svg>
       )}
 
       {/* Node Card */}

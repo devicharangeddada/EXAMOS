@@ -145,7 +145,7 @@ function AmbientHUD({
           Switch
         </button>
         <button onClick={isSoundOn ? onMute : onToggleSound} className="rounded-full px-3 py-2 bg-white/10 text-[11px] font-medium transition hover:bg-white/15">
-          {isSoundOn ? 'Mute' : 'Unmute'}
+          {isSoundOn ? 'Silence' : 'Unmute'}
         </button>
       </div>
     </motion.div>
@@ -160,6 +160,10 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const [volume, setVolume] = useState(focusAudio.getVolume() * 100);
   const [isAudioSuspended, setIsAudioSuspended] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+
+  useEffect(() => {
+    setSelectedSound(settings.soundType as SoundPresetId);
+  }, [settings.soundType]);
   const [isAuroraActive, setIsAuroraActive] = useState(false);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [completed, setCompleted] = useState(true);
@@ -216,7 +220,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
 
   const handleToggleActive = async () => {
     if (!isActive && !settings.soundMute) {
-      await focusAudio.initialize();
+      await focusAudio.resume().catch(() => {});
       setIsAudioSuspended(focusAudio.isSuspended());
       pulse('light');
     }
@@ -225,9 +229,11 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
 
   const handleResumeAudio = async () => {
     if (settings.soundMute) return;
-    await focusAudio.initialize();
+    await focusAudio.resume().catch(() => {});
     setIsAudioSuspended(focusAudio.isSuspended());
-    if (isActive && isSoundOn) focusAudio.play(selectedSound);
+    if (isActive && isSoundOn) {
+      focusAudio.play(selectedSound).catch(() => setIsAudioSuspended(true));
+    }
   };
 
   const formatTime = (totalSeconds: number) => {

@@ -94,9 +94,12 @@
     @apply font-sans antialiased;
     font-size: var(--font-body);
     line-height: 1.4;
+    background-color: var(--surface-bg);
+    color: var(--text-primary);
     transition: background-color var(--transition-speed) var(--transition-timing), 
                 color var(--transition-speed) var(--transition-timing), 
-                border-color var(--transition-speed) var(--transition-timing);
+                border-color var(--transition-speed) var(--transition-timing),
+                transform var(--transition-speed) var(--transition-timing);
   }
   body::selection {
     background: rgba(94, 92, 230, 0.18);
@@ -131,16 +134,21 @@
 
   /* Night Mode: Pure OLED Black Sanctuary */
   .theme-night {
-    background-color: var(--bg-base-dark);
+    background-color: #000000;
+    background-image: radial-gradient(circle at center, #0A0A0B 0%, #000000 100%);
     --text-primary: #E4E4E7;
-    --text-secondary: #71717A;
-    --text-tertiary: #8E8E93;
-    --surface-bg: #161618;
+    --text-secondary: #A1A1A6;
+    --text-tertiary: #6E6E73;
+    --surface-bg: #0A0A0B;
     --action-bg: #161618;
-    --border-color: var(--border-subtle-dark);
+    --border-color: rgba(255,255,255,0.08);
     --card-shadow: none;
     --color-accent: var(--color-primary-dark);
     color: var(--text-primary);
+  }
+
+  button, input, select, textarea {
+    transition: transform 500ms ease-out, background-color 500ms ease-out, border-color 500ms ease-out, color 500ms ease-out, box-shadow 500ms ease-out;
   }
 
   /* Focus Override Layer (Sanctuary) */

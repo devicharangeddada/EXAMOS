@@ -5,7 +5,7 @@ import {
   Palette, Volume2, Bell, Timer, Database, Settings as SettingsIcon,
   ChevronRight, ChevronLeft, Sun, Moon, CloudMoon, Sparkles,
   Download, Trash2, Zap, BookOpen, Brain, Info, ExternalLink, Shield,
-  Layers, RefreshCw, CheckCircle2
+  Layers, RefreshCw, CheckCircle2, CalendarDays, Clock
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { importDataFromText } from '../lib/backup';
@@ -339,8 +339,8 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
         tagline="Survey · Question · Read · Recite · Review"
         description="A structured reading strategy that converts passive reading into active learning with built-in self-testing."
         infographic={<SQ3RInfographic />}
-        selected={settings.activeStudyMethod === 'spaced-repetition'}
-        onChoose={() => updateSettings({ activeStudyMethod: 'spaced-repetition' })}
+        selected={settings.activeStudyMethod === 'SQ3R'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'SQ3R' })}
         howItWorks={[
           "Survey: skim headings and bold text",
           "Question: turn headings into questions",
@@ -366,6 +366,139 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
           "Write everything you remember — fast",
           "Review against source material",
           "Repeat until gaps are gone",
+        ]}
+      />
+
+      {/* Pomodoro Flow */}
+      <MethodCard
+        icon={<Clock size={18} />}
+        color="#5F6AFF"
+        title="Pomodoro Flow"
+        tagline="Focused work, soft breaks"
+        description="A rhythmic approach to work: intense focus sprints separated by short resets for maximum mental clarity."
+        infographic={<LeitnerInfographic />}
+        selected={settings.activeStudyMethod === 'pomodoro'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'pomodoro' })}
+        howItWorks={[
+          "Work for 25 minutes",
+          "Take a 5-minute reset",
+          "Repeat the cycle 4 times",
+          "Take a longer break after the set",
+          "Maintain pace without burnout",
+        ]}
+      />
+
+      {/* Deep Work */}
+      <MethodCard
+        icon={<Shield size={18} />}
+        color="#2266FF"
+        title="Deep Work"
+        tagline="Distraction-free immersion"
+        description="Block uninterrupted focus periods and eliminate shallow tasks to build real momentum on demanding study goals."
+        infographic={<FeynmanInfographic />}
+        selected={settings.activeStudyMethod === 'deep-work'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'deep-work' })}
+        howItWorks={[
+          "Define a high-value task",
+          "Disconnect distractions",
+          "Focus for a solid block",
+          "Capture ideas without judgment",
+          "Review output after completion",
+        ]}
+      />
+
+      {/* 52-17 Rhythm */}
+      <MethodCard
+        icon={<Clock size={18} />}
+        color="#2D8DFF"
+        title="52-17 Rhythm"
+        tagline="Peak work, full recovery"
+        description="Study for 52 minutes, then recover for 17. This cadence preserves energy while keeping performance sharp."
+        infographic={<SQ3RInfographic />}
+        selected={settings.activeStudyMethod === '52-17'}
+        onChoose={() => updateSettings({ activeStudyMethod: '52-17' })}
+        howItWorks={[
+          "Commit to 52 minutes of work",
+          "Take a deliberate 17-minute break",
+          "Shift focus during the break",
+          "Re-enter work with refreshed attention",
+          "Repeat for 3–4 cycles per session",
+        ]}
+      />
+
+      {/* Flowtime Burst */}
+      <MethodCard
+        icon={<Zap size={18} />}
+        color="#8D5BFF"
+        title="Flowtime Burst"
+        tagline="Flexible focus blocks"
+        description="Work until momentum feels right, then break naturally. Use your own rhythm instead of hard timers."
+        infographic={<BlurtingInfographic />}
+        selected={settings.activeStudyMethod === 'flowtime'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'flowtime' })}
+        howItWorks={[
+          "Start with a single task",
+          "Work until focus peaks",
+          "Stop when concentration drops",
+          "Track cycle length and adjust",
+          "Repeat with fresh intent",
+        ]}
+      />
+
+      {/* Time Blocking */}
+      <MethodCard
+        icon={<CalendarDays size={18} />}
+        color="#FF6B6B"
+        title="Time Blocking"
+        tagline="Calendar-driven study planning"
+        description="Schedule every study session in advance so you treat your syllabus like a milestone-driven project."
+        infographic={<SQ3RInfographic />}
+        selected={settings.activeStudyMethod === 'time-blocking'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'time-blocking' })}
+        howItWorks={[
+          "Reserve study blocks on your calendar",
+          "Assign topics to each block",
+          "Protect focus time from interruptions",
+          "Review progress at the end of the day",
+          "Shift future blocks based on outcomes",
+        ]}
+      />
+
+      {/* Active Recall */}
+      <MethodCard
+        icon={<BookOpen size={18} />}
+        color="#10B981"
+        title="Active Recall"
+        tagline="Test before you read"
+        description="Force retrieval from memory first, then confirm with notes. This strengthens long-term recall far faster than passive review."
+        infographic={<FeynmanInfographic />}
+        selected={settings.activeStudyMethod === 'active-recall'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'active-recall' })}
+        howItWorks={[
+          "Attempt to answer from memory",
+          "Check your accuracy quickly",
+          "Correct gaps immediately",
+          "Repeat until recall feels effortless",
+          "Lock the memory with spaced review",
+        ]}
+      />
+
+      {/* Mind Mapping */}
+      <MethodCard
+        icon={<Layers size={18} />}
+        color="#E879F9"
+        title="Mind Mapping"
+        tagline="Visualize topic relationships"
+        description="Reveal how subjects and subtopics connect in a visual, branching map that helps you understand structure and dependency."
+        infographic={<BlurtingInfographic />}
+        selected={settings.activeStudyMethod === 'mind-mapping'}
+        onChoose={() => updateSettings({ activeStudyMethod: 'mind-mapping' })}
+        howItWorks={[
+          "Place the main topic at the center",
+          "Branch out key ideas and subtopics",
+          "Link related concepts visually",
+          "Label connections with keywords",
+          "Use the map to review and recall",
         ]}
       />
     </motion.div>

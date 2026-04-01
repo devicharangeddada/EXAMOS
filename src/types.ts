@@ -77,7 +77,7 @@ export interface AppSettings {
   notificationsEnabled: boolean; // master notification permission toggle
   gpuAcceleration: boolean;   // enable hardware rendering hints
   hapticFeedback: boolean;    // simulated haptics on interaction
-  activeStudyMethod: 'pomodoro' | 'deep-work' | '52-17' | 'flowtime' | 'time-blocking' | 'active-recall' | 'spaced-repetition' | 'blurting' | 'feynman' | 'leitner';
+  activeStudyMethod: 'pomodoro' | 'deep-work' | '52-17' | 'flowtime' | 'time-blocking' | 'active-recall' | 'spaced-repetition' | 'blurting' | 'feynman' | 'leitner' | 'SQ3R' | 'mind-mapping';
 }
 
 export interface StudySession {
