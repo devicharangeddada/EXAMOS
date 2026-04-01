@@ -372,6 +372,11 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="text-tertiary hover:text-primary">
@@ -530,6 +535,13 @@ function NeuralNode({
   const completion = nodeCompletions[node.id] || 0;
   const isElite = completion === 100;
   const isSelected = selectedNodeId === node.id;
+  const [editTitle, setEditTitle] = useState(node.title);
+
+  useEffect(() => {
+    if (editingNodeId === node.id) {
+      setEditTitle(node.title);
+    }
+  }, [editingNodeId, node.id, node.title]);
 
   const matchesSearch = searchQuery === '' || node.title.toLowerCase().includes(searchQuery.toLowerCase());
   const hasMatchingChild = useMemo(() => {
@@ -609,15 +621,25 @@ function NeuralNode({
                 <input
                   autoFocus
                   className="flex-1 bg-transparent border-none outline-none body-md font-medium tracking-tighter text-primary"
-                  defaultValue={node.title}
+                  value={editTitle}
                   onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => setEditTitle(e.target.value)}
                   onBlur={(e) => {
-                    updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title: e.target.value } }));
+                    const finalTitle = editTitle.trim() || node.title;
+                    if (finalTitle !== node.title) {
+                      updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title: finalTitle } }));
+                    }
                     setEditingNodeId(null);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      updateNodes(prev => ({ ...prev, [node.id]: { ...prev[node.id], title: e.currentTarget.value } }));
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEditTitle(node.title);
                       setEditingNodeId(null);
                     }
                   }}
@@ -724,10 +746,31 @@ function NeuralNode({
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-nano">
-                  <button onClick={() => addNode(node.id)} className="p-small text-tertiary hover:text-primary"><Plus size={13} /></button>
-                  <button onClick={() => setEditingNodeId(node.id)} className="p-small text-tertiary hover:text-primary"><Edit3 size={13} /></button>
-                  <button onClick={() => deleteNode(node.id)} className="p-small text-tertiary hover:text-error"><Trash2 size={13} /></button>
+                <div className="flex items-center gap-small">
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); addNode(node.id); }}
+                    className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors"
+                    aria-label="Add child topic"
+                    type="button"
+                  >
+                    <Plus size={15} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingNodeId(node.id); }}
+                    className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-primary border border-border-color bg-surface-bg transition-colors"
+                    aria-label="Edit topic"
+                    type="button"
+                  >
+                    <Edit3 size={15} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteNode(node.id); }}
+                    className="w-11 h-11 flex items-center justify-center rounded-[12px] text-tertiary hover:text-error border border-border-color bg-surface-bg transition-colors"
+                    aria-label="Delete topic"
+                    type="button"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -800,11 +843,11 @@ function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAd
 
   const noteReady = noteText.trim().length > 0;
 
-  const handleSubmitNote = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitNote = async (e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (!noteReady || isSaving) return;
     setIsSaving(true);
-    onAddNote(noteText.trim(), noteDetails.trim() || undefined);
+    onAddNote(noteText.trim(), noteDetails.trim() || '');
     setNoteText('');
     setNoteDetails('');
     await new Promise((resolve) => setTimeout(resolve, 400));
@@ -866,7 +909,7 @@ function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAd
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              e.currentTarget.form?.requestSubmit();
+              if (noteReady) handleSubmitNote(e);
             }
           }}
         />
@@ -878,7 +921,7 @@ function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAd
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              e.currentTarget.form?.requestSubmit();
+              if (noteReady) handleSubmitNote(e);
             }
           }}
         />
