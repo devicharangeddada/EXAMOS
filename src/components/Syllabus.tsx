@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyNode, NodeStatus } from '../types';
 import { calculateSubjectProgress } from '../lib/brain';
+import { useHaptics } from '../lib/haptics';
 import { 
   Plus, 
   Trash2, 
@@ -59,6 +60,14 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
   const [newSubjectTitle, setNewSubjectTitle] = useState('');
   const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [scrollTargetId, setScrollTargetId] = useState<string | null>(null);
+  const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { pulse } = useHaptics();
+
+  const registerNodeRef = (id: string, node: HTMLDivElement | null) => {
+    if (node) nodeRefs.current[id] = node;
+    else delete nodeRefs.current[id];
+  };
 
   useEffect(() => {
     if (activeNodeId) {
@@ -67,6 +76,14 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       setExpandedIds((prev) => new Set(prev).add(activeNodeId));
     }
   }, [activeNodeId]);
+
+  const getDescendantTopics = (id: string): StudyNode[] => {
+    const children = Object.values(nodes).filter(n => n.parentId === id);
+    if (children.length === 0) {
+      return nodes[id] ? [nodes[id]] : [];
+    }
+    return children.flatMap((child) => getDescendantTopics(child.id));
+  };
 
   const nodeCompletions = useMemo(() => {
     const completions: Record<string, number> = {};
@@ -86,8 +103,8 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
         completions[id] = val;
         return val;
       }
-      const childProgress = children.map(child => ({ ...child, completion: getComp(child.id) }));
-      const val = calculateSubjectProgress(childProgress);
+      const descendantTopics = getDescendantTopics(id);
+      const val = calculateSubjectProgress(descendantTopics);
       completions[id] = val;
       return val;
     };
@@ -100,6 +117,24 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       .filter(n => n.parentId === null)
       .sort((a, b) => a.order - b.order);
   }, [nodes]);
+
+  const effectiveSelectedNodeId = selectedNodeId || activeSubjectId || rootNodes[0]?.id || null;
+
+  useEffect(() => {
+    if (!selectedNodeId && !activeSubjectId && rootNodes.length > 0) {
+      setSelectedNodeId(rootNodes[0].id);
+    }
+  }, [rootNodes, selectedNodeId, activeSubjectId]);
+
+  useEffect(() => {
+    if (scrollTargetId) {
+      const node = nodeRefs.current[scrollTargetId];
+      if (node) {
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      setScrollTargetId(null);
+    }
+  }, [scrollTargetId]);
 
   const priorityNodes = useMemo(() => Object.values(nodes).filter(n => n.isPriority), [nodes]);
 
@@ -155,9 +190,19 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const handleAddSubject = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!newSubjectTitle.trim()) return;
-    addNode(null, newSubjectTitle.trim());
+    const newId = addNode(null, newSubjectTitle.trim());
+    setSelectedNodeId(newId);
+    setActiveSubjectId(newId);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.add(newId);
+      return next;
+    });
+    setScrollTargetId(newId);
+    pulse('light');
     setNewSubjectTitle('');
     setIsAddingSubject(false);
+    onSelectNode(newId);
   };
 
   const togglePriority = (id: string) => {
@@ -380,27 +425,28 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
             ) : (
               rootNodes.map((node, idx) => (
                 <NeuralNode
-                key={node.id}
-                node={node}
-                nodes={nodes}
-                expandedIds={expandedIds}
-                toggleExpand={toggleExpand}
-                nodeCompletions={nodeCompletions}
-                onStartFocus={onStartFocus}
-                onSelectNode={handleSelectNode}
-                onRecall={onRecall}
-                updateNodes={updateNodes}
-                togglePriority={togglePriority}
-                updateNodeStatus={updateNodeStatus}
-                deleteNode={deleteNode}
-                editingNodeId={editingNodeId}
-                setEditingNodeId={setEditingNodeId}
-                searchQuery={searchQuery}
-                addNode={addNode}
-                activeSubjectId={activeSubjectId}
-                selectedNodeId={selectedNodeId}
-                isLast={idx === rootNodes.length - 1}
-              />
+                  key={node.id}
+                  node={node}
+                  nodes={nodes}
+                  expandedIds={expandedIds}
+                  toggleExpand={toggleExpand}
+                  nodeCompletions={nodeCompletions}
+                  onStartFocus={onStartFocus}
+                  onSelectNode={handleSelectNode}
+                  onRecall={onRecall}
+                  updateNodes={updateNodes}
+                  togglePriority={togglePriority}
+                  updateNodeStatus={updateNodeStatus}
+                  deleteNode={deleteNode}
+                  editingNodeId={editingNodeId}
+                  setEditingNodeId={setEditingNodeId}
+                  searchQuery={searchQuery}
+                  addNode={addNode}
+                  activeSubjectId={activeSubjectId}
+                  selectedNodeId={selectedNodeId}
+                  setNodeRef={registerNodeRef}
+                  isLast={idx === rootNodes.length - 1}
+                />
               ))
             )}
           </div>
@@ -410,15 +456,15 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       {/* Right: Node Panel */}
       <div className="w-full md:w-80 shrink-0">
         <div className="sticky top-[var(--space-medium)] space-y-medium">
-          {selectedNodeId && nodes[selectedNodeId] ? (
+          {effectiveSelectedNodeId && nodes[effectiveSelectedNodeId] ? (
             <NodePanel
-              node={nodes[selectedNodeId]}
-              onAddNote={(text, details) => addNote(selectedNodeId, text, details)}
-              onDeleteNote={(noteId) => deleteNote(selectedNodeId, noteId)}
-              onStartFocus={() => onStartFocus(selectedNodeId)}
-              onRecall={() => onRecall(selectedNodeId)}
-              onAddAttachment={(file) => addAttachment(selectedNodeId, file)}
-              onDeleteAttachment={(id) => deleteAttachment(selectedNodeId, id)}
+              node={nodes[effectiveSelectedNodeId]}
+              onAddNote={(text, details) => addNote(effectiveSelectedNodeId, text, details)}
+              onDeleteNote={(noteId) => deleteNote(effectiveSelectedNodeId, noteId)}
+              onStartFocus={() => onStartFocus(effectiveSelectedNodeId)}
+              onRecall={() => onRecall(effectiveSelectedNodeId)}
+              onAddAttachment={(file) => addAttachment(effectiveSelectedNodeId, file)}
+              onDeleteAttachment={(id) => deleteAttachment(effectiveSelectedNodeId, id)}
             />
           ) : (
             <div className="surface-card p-large text-center flex flex-col items-center justify-center h-64 border border-dashed border-border-color">
@@ -447,6 +493,7 @@ interface NeuralNodeProps {
   updateNodeStatus: (id: string, status: NodeStatus) => void;
   deleteNode: (id: string) => void;
   editingNodeId: string | null;
+  setNodeRef?: (id: string, node: HTMLDivElement | null) => void;
   setEditingNodeId: (id: string | null) => void;
   searchQuery: string;
   addNode: (parentId: string | null) => void;
@@ -460,7 +507,8 @@ function NeuralNode({
   node, nodes, expandedIds, toggleExpand, nodeCompletions,
   onStartFocus, onSelectNode, onRecall, updateNodes, togglePriority,
   updateNodeStatus, deleteNode, editingNodeId, setEditingNodeId,
-  searchQuery, addNode, activeSubjectId, selectedNodeId, level = 0, isLast = false
+  searchQuery, addNode, activeSubjectId, selectedNodeId, setNodeRef,
+  level = 0, isLast = false
 }: NeuralNodeProps) {
   const children = useMemo(() => {
     return Object.values(nodes)
@@ -510,6 +558,7 @@ function NeuralNode({
 
       {/* Node Card */}
       <motion.div
+        ref={(el) => setNodeRef?.(node.id, el)}
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={cn(
@@ -708,6 +757,7 @@ function NeuralNode({
                 addNode={addNode}
                 activeSubjectId={activeSubjectId}
                 selectedNodeId={selectedNodeId}
+                setNodeRef={setNodeRef}
                 level={level + 1}
                 isLast={idx === children.length - 1}
               />
