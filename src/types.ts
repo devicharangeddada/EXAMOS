@@ -80,6 +80,8 @@ export interface AppSettings {
   activeStudyMethod: 'pomodoro' | 'deep-work' | '52-17' | 'flowtime' | 'time-blocking' | 'active-recall' | 'spaced-repetition' | 'blurting' | 'feynman' | 'leitner' | 'SQ3R' | 'mind-mapping';
 }
 
+export type SoundPresetId = AppSettings['soundType'];
+
 export interface StudySession {
   id: string;
   nodeId: string;

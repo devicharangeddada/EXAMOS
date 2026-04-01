@@ -233,6 +233,11 @@ class AudioController {
   public stop() {
     this._stopCurrent(1.5);
   }
+
+  public async silence(): Promise<void> {
+    this._stopCurrent(0);
+    this.currentPresetId = null;
+  }
 }
 
 export const focusAudio = new AudioController();
