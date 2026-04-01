@@ -284,6 +284,9 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const node = activeNodeId ? nodes[activeNodeId] : null;
   const { pulse } = useHaptics();
 
+  const currentTitle = node?.title ?? 'Elite Sanctuary';
+  const currentSubtitle = node ? 'Center your session on this study node.' : 'Choose a topic and ignite your focus flow.';
+
   const handleTimerComplete = (duration: number) => {
     setSummaryDuration(duration);
     setShowSummary(true);
@@ -401,9 +404,43 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
   const showNeuralMap = Boolean(node?.parentId || node?.title);
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black text-white">
-      <div className="absolute inset-0 bg-black" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#121128_0%,transparent_30%),radial-gradient(circle_at_bottom,#0A0A0B_0%,transparent_45%)]" />
+    <div className="fixed inset-0 overflow-hidden bg-black text-white focus-breathing-bg matte-grain">
+      <div className="absolute inset-0 bg-black/90" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#121128_0%,transparent_28%),radial-gradient(circle_at_bottom,#0A0A0B_0%,transparent_42%)]" />
+
+      <div className="absolute inset-x-0 top-0 z-20 px-4 pt-[calc(env(safe-area-inset-top,18px)+18px)]">
+        <div className="mx-auto flex max-w-[1000px] flex-col gap-4 rounded-[32px] border border-white/10 bg-white/8 px-5 py-4 backdrop-blur-2xl shadow-[0_18px_42px_rgba(0,0,0,0.26)]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.32em] text-white/50">Elite Sanctuary</p>
+              <h1 className="text-[22px] font-semibold tracking-tight text-white">{currentTitle}</h1>
+              <p className="max-w-xl text-[12px] leading-5 text-white/65">{currentSubtitle}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-[11px] text-white/80">Sound: {isSilenced ? 'Muted' : 'Live'}</span>
+              <span className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-[11px] text-white/80">Volume {volume}%</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-center">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Streak</p>
+              <p className="text-[18px] font-semibold text-white">{Math.floor(getElapsedSeconds() / 60)}m</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-center">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Target</p>
+              <p className="text-[18px] font-semibold text-white">{Math.max(1, (settings.pomodoroLength || 25))}m</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-center">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Mode</p>
+              <p className="text-[18px] font-semibold text-white">{settings.strictMode ? 'Strict' : 'Flow'}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/20 px-4 py-3 text-center">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">Audio</p>
+              <p className="text-[18px] font-semibold text-white">{currentSoundLabel}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <NeuralMapOverlay visible={showNeuralMap && isActive} />
 
@@ -529,7 +566,7 @@ export default function FocusRoom({ activeNodeId, nodes, settings, onComplete, o
         {settings.strictMode && isActive ? <Lock size={16} /> : <ChevronLeft size={20} />}
       </button>
 
-      <div className="relative mx-auto flex min-h-full w-full max-w-[1000px] flex-col items-center justify-center px-4 pt-8 pb-[calc(env(safe-area-inset-bottom,24px)+96px)]">
+      <div className="relative mx-auto flex min-h-full w-full max-w-[1000px] flex-col items-center justify-center px-4 pt-[calc(env(safe-area-inset-top,24px)+170px)] pb-[calc(env(safe-area-inset-bottom,24px)+96px)]">
         <MemoizedTimerArena isActive={isActive} targetSeconds={targetSeconds} registerTick={registerTick} />
 
         <motion.div

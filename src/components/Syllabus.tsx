@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StudyNode, NodeStatus } from '../types';
 import { 
@@ -57,6 +57,14 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(activeNodeId);
   const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (activeNodeId) {
+      setSelectedNodeId(activeNodeId);
+      setActiveSubjectId(activeNodeId);
+      setExpandedIds((prev) => new Set(prev).add(activeNodeId));
+    }
+  }, [activeNodeId]);
+
   const nodeCompletions = useMemo(() => {
     const completions: Record<string, number> = {};
     const getComp = (id: string): number => {
@@ -100,6 +108,12 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setExpandedIds(next);
+  };
+
+  const handleSelectNode = (id: string) => {
+    setSelectedNodeId(id);
+    setActiveSubjectId(id);
+    onSelectNode(id);
   };
 
   const addNode = (parentId: string | null = null) => {
@@ -191,8 +205,35 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
     <div className="flex flex-col md:flex-row gap-large py-medium">
       {/* Neural Map Tree */}
       <div className="flex-1 space-y-large">
+        {/* Map Hero */}
+        <div className="surface-card border border-border-color bg-[#131821]/80 p-large shadow-[0_30px_80px_rgba(0,0,0,0.33)] backdrop-blur-2xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="caption-sm uppercase tracking-[0.32em] text-tertiary">Syllabus Map</p>
+              <h2 className="text-[26px] font-semibold tracking-tight text-primary">Neural roadmap for focused mastery</h2>
+              <p className="max-w-2xl text-[13px] text-white/65">
+                Navigate your subject hierarchy, spotlight priority work, and launch sessions directly from the map.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => addNode(null)}
+                className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[12px] font-medium text-white transition hover:bg-white/15"
+              >
+                + New Subject
+              </button>
+              <button
+                onClick={() => addNode(selectedNodeId)}
+                className="rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-[12px] font-medium text-accent transition hover:bg-accent/15"
+              >
+                + New Topic
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Sticky Top Bar */}
-        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border-color py-small -mx-medium px-medium flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border-color py-small -mx-medium px-medium flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-medium">
             <div className="flex flex-col">
               <span className="caption-sm text-tertiary">Mastered</span>
@@ -281,26 +322,27 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
             ) : (
               rootNodes.map((node, idx) => (
                 <NeuralNode
-                  key={node.id}
-                  node={node}
-                  nodes={nodes}
-                  expandedIds={expandedIds}
-                  toggleExpand={toggleExpand}
-                  nodeCompletions={nodeCompletions}
-                  onStartFocus={onStartFocus}
-                  onSelectNode={(id) => { setSelectedNodeId(id); onSelectNode(id); setActiveSubjectId(id); }}
-                  onRecall={onRecall}
-                  updateNodes={updateNodes}
-                  togglePriority={togglePriority}
-                  updateNodeStatus={updateNodeStatus}
-                  deleteNode={deleteNode}
-                  editingNodeId={editingNodeId}
-                  setEditingNodeId={setEditingNodeId}
-                  searchQuery={searchQuery}
-                  addNode={addNode}
-                  activeSubjectId={activeSubjectId}
-                  isLast={idx === rootNodes.length - 1}
-                />
+                key={node.id}
+                node={node}
+                nodes={nodes}
+                expandedIds={expandedIds}
+                toggleExpand={toggleExpand}
+                nodeCompletions={nodeCompletions}
+                onStartFocus={onStartFocus}
+                onSelectNode={handleSelectNode}
+                onRecall={onRecall}
+                updateNodes={updateNodes}
+                togglePriority={togglePriority}
+                updateNodeStatus={updateNodeStatus}
+                deleteNode={deleteNode}
+                editingNodeId={editingNodeId}
+                setEditingNodeId={setEditingNodeId}
+                searchQuery={searchQuery}
+                addNode={addNode}
+                activeSubjectId={activeSubjectId}
+                selectedNodeId={selectedNodeId}
+                isLast={idx === rootNodes.length - 1}
+              />
               ))
             )}
           </div>
@@ -351,6 +393,7 @@ interface NeuralNodeProps {
   searchQuery: string;
   addNode: (parentId: string | null) => void;
   activeSubjectId: string | null;
+  selectedNodeId: string | null;
   level?: number;
   isLast?: boolean;
 }
@@ -359,7 +402,7 @@ function NeuralNode({
   node, nodes, expandedIds, toggleExpand, nodeCompletions,
   onStartFocus, onSelectNode, onRecall, updateNodes, togglePriority,
   updateNodeStatus, deleteNode, editingNodeId, setEditingNodeId,
-  searchQuery, addNode, activeSubjectId, level = 0, isLast = false
+  searchQuery, addNode, activeSubjectId, selectedNodeId, level = 0, isLast = false
 }: NeuralNodeProps) {
   const children = useMemo(() => {
     return Object.values(nodes)
@@ -370,6 +413,7 @@ function NeuralNode({
   const isExpanded = expandedIds.has(node.id);
   const completion = nodeCompletions[node.id] || 0;
   const isElite = completion === 100;
+  const isSelected = selectedNodeId === node.id;
 
   const matchesSearch = searchQuery === '' || node.title.toLowerCase().includes(searchQuery.toLowerCase());
   const hasMatchingChild = useMemo(() => {
@@ -414,6 +458,7 @@ function NeuralNode({
           level === 0 ? "p-small mb-[2px]" : "p-[10px] mb-[2px]",
           isElite && "elite-node",
           !isElite && "border-transparent",
+          isSelected && "border-accent/60 bg-accent/10 shadow-[0_0_28px_rgba(108,140,255,0.14)]",
           isExpanded
             ? "bg-black/[0.03] dark:bg-white/[0.03]"
             : "hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
@@ -602,6 +647,7 @@ function NeuralNode({
                 searchQuery={searchQuery}
                 addNode={addNode}
                 activeSubjectId={activeSubjectId}
+                selectedNodeId={selectedNodeId}
                 level={level + 1}
                 isLast={idx === children.length - 1}
               />
