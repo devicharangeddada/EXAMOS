@@ -215,4 +215,6 @@ const NeuralNode: FC<NeuralNodeProps> = ({ node, level = 0 }) => {
       </AnimatePresence>
     </motion.div>
   );
-}
+};
+
+export default NeuralNode;
