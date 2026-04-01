@@ -3,7 +3,7 @@
  * Central state hook for EchOS. Handles persistence, navigation guards, settings updates,
  * and exposes a clean interface for app-level logic and eventual API export.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, AppSettings, StudyNode, StudySession } from '../types';
 import { loadState, saveState } from '../store';
 
@@ -14,8 +14,38 @@ export function useEchOS() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isFocusActive, setIsFocusActive] = useState(false);
 
+  const saveTimeoutRef = useRef<number | null>(null);
+  const idleCallbackRef = useRef<number | null>(null);
+
   useEffect(() => {
-    saveState(state);
+    const cancelPendingSave = () => {
+      if (saveTimeoutRef.current !== null) {
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (idleCallbackRef.current !== null) {
+        (window as any).cancelIdleCallback?.(idleCallbackRef.current);
+        idleCallbackRef.current = null;
+      }
+    };
+
+    cancelPendingSave();
+    saveTimeoutRef.current = window.setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        idleCallbackRef.current = (window as any).requestIdleCallback(
+          () => {
+            saveState(state);
+            idleCallbackRef.current = null;
+          },
+          { timeout: 1000 }
+        );
+      } else {
+        saveState(state);
+      }
+      saveTimeoutRef.current = null;
+    }, 500);
+
+    return cancelPendingSave;
   }, [state]);
 
   useEffect(() => {

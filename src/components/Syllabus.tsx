@@ -232,10 +232,20 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
       [nodeId]: {
         ...prev[nodeId],
         notes: [...prev[nodeId].notes, {
-          id: Math.random().toString(36).substring(7), text, details: details || '',
-          confidence: 1, level: 0, streak: 0, failCount: 0, wrongCount: 0, urgencyScore: 0,
-          lastSeen: new Date().toISOString(), nextDue: new Date().toISOString(),
-          leitnerBox: 0, lastLeitnerMoveAt: new Date().toISOString(), blurting: { attempts: 0 }
+          id: crypto.randomUUID(),
+          text,
+          details: details || '',
+          confidence: 1,
+          level: 0,
+          streak: 0,
+          failCount: 0,
+          wrongCount: 0,
+          urgencyScore: 0,
+          lastSeen: new Date().toISOString(),
+          nextDue: new Date().toISOString(),
+          leitnerBox: 0,
+          lastLeitnerMoveAt: new Date().toISOString(),
+          blurting: { attempts: 0 }
         }]
       }
     }));
@@ -249,7 +259,7 @@ export default function Syllabus({ nodes, updateNodes, activeNodeId, onStartFocu
   };
 
   const addAttachment = async (nodeId: string, file: File) => {
-    const id = Math.random().toString(36).substring(7);
+    const id = crypto.randomUUID();
     const attachment = { id, name: file.name, type: file.type, size: file.size, createdAt: new Date().toISOString() };
     try {
       const { saveFile } = await import('../lib/storage');
@@ -715,9 +725,9 @@ function NeuralNode({
                   ))}
                 </div>
                 <div className="flex items-center gap-nano">
-                  <button onClick={() => addNode(node.id)} className="p-nano text-tertiary hover:text-primary"><Plus size={13} /></button>
-                  <button onClick={() => setEditingNodeId(node.id)} className="p-nano text-tertiary hover:text-primary"><Edit3 size={13} /></button>
-                  <button onClick={() => deleteNode(node.id)} className="p-nano text-tertiary hover:text-error"><Trash2 size={13} /></button>
+                  <button onClick={() => addNode(node.id)} className="p-small text-tertiary hover:text-primary"><Plus size={13} /></button>
+                  <button onClick={() => setEditingNodeId(node.id)} className="p-small text-tertiary hover:text-primary"><Edit3 size={13} /></button>
+                  <button onClick={() => deleteNode(node.id)} className="p-small text-tertiary hover:text-error"><Trash2 size={13} /></button>
                 </div>
               </div>
             </motion.div>
@@ -788,13 +798,13 @@ function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAd
   const [showAttach, setShowAttach] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  const noteReady = noteText.trim().length > 0 && noteDetails.trim().length > 0;
+  const noteReady = noteText.trim().length > 0;
 
   const handleSubmitNote = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!noteReady || isSaving) return;
     setIsSaving(true);
-    onAddNote(noteText.trim(), noteDetails.trim());
+    onAddNote(noteText.trim(), noteDetails.trim() || undefined);
     setNoteText('');
     setNoteDetails('');
     await new Promise((resolve) => setTimeout(resolve, 400));

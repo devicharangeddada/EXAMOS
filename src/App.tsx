@@ -10,7 +10,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
-import Syllabus from './components/Syllabus';
+import Syllabus from './features/syllabus/SyllabusMap';
 import FocusRoom from './components/FocusRoom';
 import Flashcards from './components/Flashcards';
 import Stats from './components/Stats';
@@ -49,9 +49,9 @@ export default function App() {
   }, [themeClass]);
 
   const appName = useMemo(() => {
-    if (currentPage === 'focus') return 'EchOS';
-    return 'imdvichrn';
-  }, [currentPage]);
+    const activeNode = state.activeSlotId ? state.nodes[state.activeSlotId] : undefined;
+    return activeNode?.title || 'EchOS';
+  }, [state.activeSlotId, state.nodes]);
 
   const renderPage = () => {
     if (!state.onboarding.completed) {
@@ -131,7 +131,7 @@ export default function App() {
   // All 5 nav items on both mobile and desktop
   const navItems = [
     { id: 'dashboard',  icon: LayoutDashboard, label: 'Home' },
-    { id: 'syllabus',   icon: BookOpen,         label: 'Syllabus' },
+    { id: 'syllabus',   icon: BookOpen,         label: 'Map' },
     { id: 'focus',      icon: Timer,            label: 'Focus' },
     { id: 'flashcards', icon: Zap,              label: 'Recall' },
     { id: 'stats',      icon: BarChart3,        label: 'Stats' },

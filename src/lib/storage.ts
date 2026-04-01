@@ -39,3 +39,7 @@ export async function getFileUrl(id: string): Promise<string | null> {
   if (!blob) return null;
   return URL.createObjectURL(blob);
 }
+
+export function revokeFileUrl(url: string): void {
+  URL.revokeObjectURL(url);
+}

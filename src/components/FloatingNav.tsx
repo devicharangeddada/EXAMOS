@@ -26,7 +26,7 @@ export default function FloatingNav({ items, activeTab, onTabChange, className, 
         className
       )}
       style={{
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        bottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)',
       }}
     >
       {items.map((item) => {

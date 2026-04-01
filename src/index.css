@@ -141,15 +141,15 @@
 
   /* Night Mode: Pure OLED Black Sanctuary */
   .theme-night {
-    background-color: #0D0F14;
-    background-image: radial-gradient(circle at center, #151821 0%, #0D0F14 100%);
+    background-color: #000000;
+    background-image: radial-gradient(circle at center, #121214 0%, #000000 100%);
     --text-primary: var(--text-primary);
     --text-secondary: var(--text-secondary);
     --text-tertiary: var(--text-tertiary);
-    --surface-bg: var(--bg-card);
-    --action-bg: rgba(108, 140, 255, 0.08);
-    --border-color: rgba(255,255,255,0.08);
-    --card-shadow: none;
+    --surface-bg: #121214;
+    --action-bg: rgba(108, 140, 255, 0.12);
+    --border-color: rgba(255,255,255,0.15);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     --color-accent: var(--color-accent);
     color: var(--text-primary);
   }

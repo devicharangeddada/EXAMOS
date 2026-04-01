@@ -85,6 +85,9 @@ export default function Settings({ settings, updateSettings, examDate, setExamDa
     a.href = url;
     a.download = `echos_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   const renderRoot = () => (
