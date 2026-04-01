@@ -431,6 +431,8 @@ function NeuralNode({
   const isInactive = level === 0 && activeSubjectId !== null && activeSubjectId !== node.id && searchQuery === '';
 
   const statusColor = node.status === 'done' ? '#34C759' : node.status === 'in-progress' ? '#FF9F0A' : 'var(--text-tertiary)';
+  const connectorStartX = Math.max(18, 24 - level * 4);
+  const connectorPath = `M${connectorStartX} 4 C${connectorStartX} 4, 10 4, 10 18`;
 
   return (
     <motion.div
@@ -442,10 +444,10 @@ function NeuralNode({
     >
       {/* L-shaped Apple-style connector: horizontal arm from vertical border to this node */}
       {level > 0 && (
-        <svg className="absolute left-[-20px] top-[12px] w-8 h-8 pointer-events-none" viewBox="0 0 32 32">
-          <path d="M24 4 C24 4, 10 4, 10 18" fill="none" stroke="rgba(74,144,226,0.22)" strokeWidth="2" strokeLinecap="round" />
+        <motion.svg layout className="absolute left-[-20px] top-[12px] w-8 h-8 pointer-events-none" viewBox="0 0 32 32">
+          <path d={connectorPath} fill="none" stroke="rgba(74,144,226,0.22)" strokeWidth="2" strokeLinecap="round" />
           <path d="M10 18 L10 28" fill="none" stroke="rgba(74,144,226,0.22)" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        </motion.svg>
       )}
 
       {/* Node Card */}
@@ -673,8 +675,25 @@ interface NodePanelProps {
 function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAddAttachment, onDeleteAttachment }: NodePanelProps) {
   const [noteText, setNoteText] = useState('');
   const [noteDetails, setNoteDetails] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [showAttach, setShowAttach] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const noteReady = noteText.trim().length > 0 && noteDetails.trim().length > 0;
+
+  const handleSubmitNote = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!noteReady || isSaving) return;
+    setIsSaving(true);
+    onAddNote(noteText.trim(), noteDetails.trim());
+    setNoteText('');
+    setNoteDetails('');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    setIsSaving(false);
+    setSaveSuccess(true);
+    window.setTimeout(() => setSaveSuccess(false), 1500);
+  };
 
   return (
     <div className="surface-card space-y-medium">
@@ -720,30 +739,41 @@ function NodePanel({ node, onAddNote, onDeleteNote, onStartFocus, onRecall, onAd
             </div>
           ))}
         </div>
-        <div className="space-y-nano">
-          <input
-            className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[12px] text-primary border border-border-color outline-none focus:border-accent/50 transition-colors"
-            placeholder="Add a note..."
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && noteText.trim()) {
-                onAddNote(noteText, noteDetails);
-                setNoteText('');
-                setNoteDetails('');
-              }
-            }}
-          />
-          {noteText && (
-            <input
-              className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[11px] text-secondary border border-border-color outline-none"
-              placeholder="Details (optional)..."
-              value={noteDetails}
-              onChange={(e) => setNoteDetails(e.target.value)}
-            />
-          )}
-        </div>
-      </div>
+        <form className="space-y-nano" onSubmit={handleSubmitNote}>
+        <input
+          className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[12px] text-primary border border-border-color outline-none focus:border-accent/50 transition-colors"
+          placeholder="Note title"
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
+        />
+        <input
+          className="w-full bg-action-light dark:bg-action-dark rounded-lg px-small py-nano text-[11px] text-secondary border border-border-color outline-none focus:border-accent/50 transition-colors"
+          placeholder="Note description"
+          value={noteDetails}
+          onChange={(e) => setNoteDetails(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
+        />
+        <button
+          type="submit"
+          disabled={!noteReady || isSaving}
+          className={`w-full mt-small inline-flex items-center justify-center gap-nano rounded-xl bg-accent text-white px-medium py-3 text-[12px] font-medium transition-all ${noteReady && !isSaving ? 'hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)] active:scale-95' : 'opacity-50 grayscale cursor-not-allowed'}`}
+        >
+          {isSaving ? 'Saving...' : saveSuccess ? 'Saved' : 'Save Note'}
+          {saveSuccess ? <CheckCircle2 size={14} /> : <Plus size={14} />}
+        </button>
+      </form>
+    </div>
 
       {/* Attachments */}
       <div className="space-y-nano">

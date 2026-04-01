@@ -127,22 +127,28 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </div>
 
             <div className="space-y-medium">
-              <div className="flex gap-small">
-                <input 
-                  type="text" 
-                  placeholder="Add a subject..."
-                  value={subjectInput}
-                  onChange={e => setSubjectInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addSubject()}
-                  className="flex-1 h-14 bg-action-light/30 dark:bg-action-dark/30 border border-border-color rounded-2xl px-medium focus:border-accent transition-colors outline-none text-primary"
-                />
-                <button 
-                  onClick={addSubject}
-                  className="w-14 h-14 bg-accent/10 text-accent rounded-2xl flex items-center justify-center hover:bg-accent/20 transition-colors"
-                >
-                  <CheckCircle2 size={24} />
-                </button>
-              </div>
+              <form className="flex gap-small" onSubmit={(e) => { e.preventDefault(); addSubject(); }}>
+              <input 
+                type="text" 
+                placeholder="Add a subject..."
+                value={subjectInput}
+                onChange={e => setSubjectInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSubject();
+                  }
+                }}
+                className="flex-1 h-14 bg-action-light/30 dark:bg-action-dark/30 border border-border-color rounded-2xl px-medium focus:border-accent transition-colors outline-none text-primary"
+              />
+              <button 
+                type="submit"
+                disabled={!subjectInput.trim()}
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center ${subjectInput.trim() ? 'bg-accent text-white hover:brightness-110 shadow-[0_4px_14px_0_rgba(94,92,230,0.39)] active:scale-95' : 'bg-action-light/30 text-secondary opacity-50 grayscale cursor-not-allowed'} transition-all`}
+              >
+                <CheckCircle2 size={24} />
+              </button>
+            </form>
 
               <div className="flex flex-wrap gap-small">
                 <AnimatePresence>
